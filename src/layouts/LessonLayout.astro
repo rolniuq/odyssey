@@ -1,0 +1,127 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Quiz from '../components/Quiz';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  lesson: CollectionEntry<'lessons'>;
+  prev?: CollectionEntry<'lessons'>;
+  next?: CollectionEntry<'lessons'>;
+}
+
+const { lesson, prev, next } = Astro.props;
+const { title, difficulty, objectives, coreConcept, docSource, docTitle } = lesson.data;
+
+const difficultyBadge: Record<string, string> = {
+  beginner: 'bg-emerald-100 text-emerald-700',
+  intermediate: 'bg-amber-100 text-amber-700',
+  advanced: 'bg-rose-100 text-rose-700',
+};
+---
+
+<BaseLayout title={`${title} — OdysseyDB`}>
+  <!-- Header: one concept, one page -->
+  <div class="mb-8">
+    <a href="/lessons" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+      ← All lessons
+    </a>
+    <div class="mt-4 flex flex-wrap items-center gap-2">
+      <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+      <span
+        class={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${difficultyBadge[difficulty]}`}
+      >
+        {difficulty}
+      </span>
+    </div>
+
+    <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+      <p class="text-xs font-semibold tracking-wider text-indigo-500 uppercase">
+        The one idea on this page
+      </p>
+      <p class="mt-1 text-lg font-medium text-indigo-900">{coreConcept}</p>
+    </div>
+
+    <div class="mt-4">
+      <p class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+        After this page you can explain your own words…
+      </p>
+      <ul class="mt-2 space-y-1.5">
+        {
+          objectives.map((o, i) => (
+            <li class="flex items-start gap-2 text-slate-700">
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              {o}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  <!-- Feynman teaching body -->
+  <article class="lesson-body">
+    <slot />
+  </article>
+
+  <!-- Quiz island -->
+  <section class="mt-12">
+    <Quiz questions={lesson.data.quiz} />
+  </section>
+
+  <hr class="my-10 border-slate-200" />
+
+  <!-- Source + navigation -->
+  <div class="flex flex-col gap-4">
+    <p class="text-sm text-slate-500">
+      Source:{' '}
+      <a
+        href={docSource}
+        target="_blank"
+        rel="noreferrer"
+        class="font-medium text-indigo-600 hover:underline"
+      >
+        {docTitle} (PostgreSQL official docs)
+      </a>
+    </p>
+    <nav class="flex flex-wrap justify-between gap-4 border-t border-slate-200 pt-6">
+      {
+        prev ? (
+          <a href={`/lessons/${prev.id}`} class="group max-w-xs">
+            <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+              Previous lesson
+            </span>
+            <span class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600">
+              ← {prev.data.title}
+            </span>
+          </a>
+        ) : (
+          <span />
+        )
+      }
+      {
+        next ? (
+          <a href={`/lessons/${next.id}`} class="group max-w-xs text-right">
+            <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+              Next lesson
+            </span>
+            <span class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600">
+              {next.data.title} →
+            </span>
+          </a>
+        ) : (
+          <span />
+        )
+      }
+    </nav>
+  </div>
+</BaseLayout>

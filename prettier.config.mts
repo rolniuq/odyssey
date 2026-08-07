@@ -1,0 +1,16 @@
+/** @type {import("prettier").Config} */
+export default {
+  semi: true,
+  singleQuote: true,
+  trailingComma: 'es5',
+  printWidth: 100,
+  proseWrap: 'always',
+
+  plugins: ['prettier-plugin-astro', 'prettier-plugin-tailwindcss'],
+  overrides: [
+    {
+      files: '*.astro',
+      options: { parser: 'astro' },
+    },
+  ],
+};

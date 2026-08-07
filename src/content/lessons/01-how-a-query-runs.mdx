@@ -1,0 +1,145 @@
+---
+order: 1
+title: "How a query runs (and why it's not line-by-line)"
+coreConcept:
+  'A query does not execute top-to-bottom the way you type it — it is parsed, compiled into a plan,
+  and only then executed.'
+docSource: 'https://www.postgresql.org/docs/current/query-intro.html'
+docTitle: 'Getting Started — the query pipeline'
+difficulty: 'beginner'
+objectives:
+  - 'Explain in your own words the three stages a query passes through'
+  - 'Identify which stage actually touches the data on disk'
+  - 'Say why the executor only runs at the very end'
+quiz:
+  - question: 'Which stage of a query is the ONLY one that actually reads data from disk?'
+    options:
+      - 'The parser'
+      - 'The planner (optimizer)'
+      - 'The executor'
+      - 'The client writing the query'
+    answerIndex: 2
+    explanation:
+      'The parser only checks grammar and builds a syntax tree. The planner only does math on
+      estimated costs and picks a plan. Neither touches a single page on disk. The executor is where
+      the real work happens — it walks the plan and reads rows.'
+  - question: "The planner's main job is to…"
+    options:
+      - 'execute the query as fast as possible'
+      - 'choose the cheapest execution plan among the many legal ones'
+      - 'translate SQL text into a syntax tree'
+      - 'draw a diagram of the schema'
+    answerIndex: 1
+    explanation:
+      'Given one SQL statement, there are usually several valid ways to run it (different indexes,
+      different join orders). The planner estimates the cost of each and picks the cheapest. It
+      never executes anything — it only chooses.'
+  - question: "If a query has a WHERE city = 'Hanoi', the filter is applied by…"
+    options:
+      - 'the parser, while building the tree'
+      - 'the planner, while choosing the plan'
+      - 'the executor, while walking the rows'
+      - "none of these — filtering isn't a query operation"
+    answerIndex: 2
+    explanation:
+      "The parser doesn't know about data. The planner estimates how rows would be filtered and uses
+      the filter to estimate costs, but it doesn't apply it. Only the executor applies the filter to
+      each candidate row as it reads it."
+  - question: 'Which best captures the mental model from this page?'
+    options:
+      - 'SQL runs top to bottom, like reading a recipe'
+      - 'SQL is: parse → plan → execute, and only the last step touches data'
+      - 'SQL is: execute → plan → parse, in that order'
+      - 'The parser does all the real work'
+    answerIndex: 1
+    explanation:
+      'Keep this ordering in your head forever: text → syntax tree (parse) → chosen plan (plan) →
+      real work reading rows (execute). Data moves last. If you keep this picture, everything about
+      EXPLAIN and performance later will make sense.'
+---
+
+import QueryExecutor from '../../components/QueryExecutor.tsx';
+
+<QueryExecutor client:idle />
+
+## The one question this page answers
+
+When you write a query and run it, you might imagine the database \"doing\" it line by line, the way
+you typed it. **That picture is wrong.** Behind the scenes, PostgreSQL treats your query like a
+_program to compile_, not a to-do list.
+
+There are three clear stages, and they happen in a strict order:
+
+1. **Parse** — check the grammar, turn text into a structure.
+2. **Plan** — decide the cheapest way to do it (no data touched yet).
+3. **Execute** — finally open the tables and move the rows.
+
+Everything important about PostgreSQL later (why indexes matter, what `EXPLAIN` shows, why a `JOIN`
+order changes speed) grows from these three.
+
+## Start with an analogy
+
+Think of asking a chef to make a dish from a recipe you wrote.
+
+- **Parse** is the chef checking the recipe is actually written validly — \"flour, eggs, salt\" —
+  and writing notes on the margins. No food touched yet.
+- **Plan** is the chef calculating: \"I'll start the oven first, whisk eggs while it heats, because
+  the oven is the slowest.\" Choosing the order. Still no food touched.
+- **Execute** is the cook actually opening the fridge and cooking.
+
+The _chef only cooks once the plan is chosen._ And the choice of plan — turn the oven on early vs.
+late — can change how fast your dinner comes out. That's exactly what the planner does with your
+query.
+
+## The three stages, honestly
+
+The animation above is the whole idea. But let's make each box precise, because the precise
+definition is what survives the quiz.
+
+### Parser — grammar, not truth
+
+PostgreSQL takes the characters of your query and checks: are the _words_ valid, are the _places_
+right, are the punctuation balanced? The result is a structure called a **syntax tree**. Crucially
+the parser does **not** know your data — it has never looked at a row. It has only checked the
+grammar.
+
+### Planner — choosing, not doing
+
+Now PostgreSQL takes that syntax tree and asks: _given that tree, what is the cheapest real set of
+steps to get the answer?_ There are usually many ways:
+
+- read the whole table row by row
+- use index A
+- use index B
+- build a temp list, sort it, etc.
+
+The planner estimates a **cost** per option and picks the cheapest. It never touches a row. It's
+pure math on the _shape_ of the query and the metadata it has about your tables. For now: **planner
+= decision-maker, zero data.**
+
+### Executor — the only place work happens
+
+Only now does PostgreSQL open the tables, read pages, apply your `WHERE`, join rows, sort, and
+return you the result. All those rows you get back exist because of a single engine actually
+stepping through the chosen plan.
+
+When you see a slow query, nine times out of ten it is the executor being asked to do something
+expensive — which traces back to a plan the planner chose. Fix the plan, and the executor has less
+to do.
+
+## What this is NOT
+
+| Misconception                                   | Truth                                                                        |
+| ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| \"SQL runs the way I typed it\"                 | SQL is _compiled_: parse → plan → execute. Data only moves in the last step. |
+| \"The parser reads my data\"                    | The parser only validates grammar. Zero data.                                |
+| \"The planner runs the query to compare speed\" | The planner _estimates_ costs from statistics; it never experiments.         |
+
+## Why this matters for the rest of the trip
+
+Everything you will do from Lesson 2 on — single-table queries, indexes, joins, `EXPLAIN`,
+transactions — hangs off the same skeleton:
+
+**text → syntax tree → chosen plan → actual execution → your rows.**
+
+Keep the skeleton, and later lessons are just tattooed variations on it.

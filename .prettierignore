@@ -1,0 +1,6 @@
+# Ignore generated and third-party files
+dist
+.astro
+node_modules
+package-lock.json
+coverage
