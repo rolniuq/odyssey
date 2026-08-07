@@ -73,7 +73,9 @@ Then spot-check `http://localhost:4321/lessons/[slug]` over `astro dev --backgro
 ## 6. Git / commits
 
 - Never commit `node_modules/`, `dist/`, `.astro/`, or `.env*` (see `.gitignore`).
-- Write a single, descriptive commit message; conventional style for new work.
+- **Follow `COMMIT_CONVENTION.md`** (Conventional Commits). The `.githooks/commit-msg`
+  hook enforces it locally (`git config core.hooksPath .githooks`).
+- Write one descriptive commit per logical change.
 - Do not force-push or rewrite published history.
 
 ## 7. "What this is NOT" — contract impositions

@@ -20,6 +20,12 @@ Manage the background server with `astro dev stop`, `astro dev status`, and `ast
 
 See [`RULES.md`](./RULES.md) for the full coding contract.
 
+## Commits
+
+Follow **Conventional Commits** (enforced by the `.githooks/commit-msg` hook):
+`<type>(<scope>): <subject>`. Types: `feat | fix | docs | style | refactor | perf | test |
+build | ci | chore | revert`. Full rules + examples in [`COMMIT_CONVENTION.md`](./COMMIT_CONVENTION.md).
+
 ## Documentation
 
 Full documentation: https://docs.astro.build
