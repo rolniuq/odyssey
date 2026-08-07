@@ -7,6 +7,10 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
+  // Served from a GitHub Pages project site: rolniuq.github.io/odyssey/
+  site: 'https://rolniuq.github.io',
+  base: '/odyssey/',
+
   integrations: [react(), mdx()],
 
   build: {
