@@ -11,6 +11,7 @@ interface Props {
 
 const { lesson, prev, next } = Astro.props;
 const { title, difficulty, objectives, coreConcept, docSource, docTitle } = lesson.data;
+const base = import.meta.env.BASE_URL;
 
 const difficultyBadge: Record<string, string> = {
   beginner: 'bg-emerald-100 text-emerald-700',
@@ -22,7 +23,7 @@ const difficultyBadge: Record<string, string> = {
 <BaseLayout title={`${title} — OdysseyDB`}>
   <!-- Header: one concept, one page -->
   <div class="mb-8">
-    <a href="/lessons" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+    <a href={`${base}lessons`} class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
       ← All lessons
     </a>
     <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -96,7 +97,7 @@ const difficultyBadge: Record<string, string> = {
     <nav class="flex flex-wrap justify-between gap-4 border-t border-slate-200 pt-6">
       {
         prev ? (
-          <a href={`/lessons/${prev.id}`} class="group max-w-xs">
+          <a href={`${base}lessons/${prev.id}`} class="group max-w-xs">
             <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Previous lesson
             </span>
@@ -110,7 +111,7 @@ const difficultyBadge: Record<string, string> = {
       }
       {
         next ? (
-          <a href={`/lessons/${next.id}`} class="group max-w-xs text-right">
+          <a href={`${base}lessons/${next.id}`} class="group max-w-xs text-right">
             <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Next lesson
             </span>

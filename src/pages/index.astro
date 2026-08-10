@@ -4,6 +4,7 @@ import { getCollection } from 'astro:content';
 
 const lessons = await getCollection('lessons');
 const count = lessons.length;
+const base = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout title="OdysseyDB — Learn PostgreSQL deeply">
@@ -29,7 +30,7 @@ const count = lessons.length;
     </div>
     <div class="mt-8">
       <a
-        href="/lessons"
+        href={`${base}lessons`}
         class="rounded-xl bg-indigo-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-indigo-700"
       >
         Start Lesson 1 →
