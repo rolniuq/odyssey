@@ -14,19 +14,22 @@ const { title, difficulty, objectives, coreConcept, docSource, docTitle } = less
 const base = import.meta.env.BASE_URL;
 
 const difficultyBadge: Record<string, string> = {
-  beginner: 'bg-emerald-100 text-emerald-700',
-  intermediate: 'bg-amber-100 text-amber-700',
-  advanced: 'bg-rose-100 text-rose-700',
+  beginner: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  intermediate: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  advanced: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
 };
 ---
 
 <BaseLayout title={`${title} — OdysseyDB`}>
   <!-- Header: one concept, one page -->
   <div class="mb-8">
-    <a href={`${base}lessons`} class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+    <a
+      href={`${base}lessons`}
+      class="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+    >
       ← All lessons
     </a>
-    <div class="mt-4 flex flex-wrap items-center gap-2">
+    <div class="mt-4 flex flex-wrap items-center gap-3">
       <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
       <span
         class={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${difficultyBadge[difficulty]}`}
@@ -35,25 +38,31 @@ const difficultyBadge: Record<string, string> = {
       </span>
     </div>
 
-    <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-      <p class="text-xs font-semibold tracking-wider text-indigo-500 uppercase">
+    <div
+      class="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/10"
+    >
+      <p
+        class="text-xs font-semibold tracking-wider text-indigo-500 uppercase dark:text-indigo-400"
+      >
         The one idea on this page
       </p>
-      <p class="mt-1 text-lg font-medium text-indigo-900">{coreConcept}</p>
+      <p class="mt-1 text-lg font-medium text-indigo-900 dark:text-indigo-100">{coreConcept}</p>
     </div>
 
     <div class="mt-4">
-      <p class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+      <p
+        class="text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500"
+      >
         After this page you can explain your own words…
       </p>
       <ul class="mt-2 space-y-1.5">
         {
           objectives.map((o) => (
-            <li class="flex items-start gap-2 text-slate-700">
+            <li class="flex items-start gap-2 text-slate-700 dark:text-slate-300">
               <svg
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"
+                class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500 dark:text-emerald-400"
               >
                 <path
                   fill-rule="evenodd"
@@ -79,29 +88,31 @@ const difficultyBadge: Record<string, string> = {
     <Quiz questions={lesson.data.quiz} />
   </section>
 
-  <hr class="my-10 border-slate-200" />
+  <hr class="my-10 border-slate-200 dark:border-slate-800" />
 
   <!-- Source + navigation -->
   <div class="flex flex-col gap-4">
-    <p class="text-sm text-slate-500">
+    <p class="text-sm text-slate-500 dark:text-slate-400">
       Source:{' '}
       <a
         href={docSource}
         target="_blank"
         rel="noreferrer"
-        class="font-medium text-indigo-600 hover:underline"
+        class="font-medium text-indigo-600 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
       >
         {docTitle} (PostgreSQL official docs)
       </a>
     </p>
-    <nav class="flex flex-wrap justify-between gap-4 border-t border-slate-200 pt-6">
+    <nav class="flex flex-wrap justify-between gap-4 border-t border-slate-200 pt-6 dark:border-slate-800">
       {
         prev ? (
           <a href={`${base}lessons/${prev.id}`} class="group max-w-xs">
-            <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+            <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500">
               Previous lesson
             </span>
-            <span class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600">
+            <span
+              class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600 dark:text-slate-300 dark:group-hover:text-indigo-400"
+            >
               ← {prev.data.title}
             </span>
           </a>
@@ -112,10 +123,12 @@ const difficultyBadge: Record<string, string> = {
       {
         next ? (
           <a href={`${base}lessons/${next.id}`} class="group max-w-xs text-right">
-            <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+            <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500">
               Next lesson
             </span>
-            <span class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600">
+            <span
+              class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600 dark:text-slate-300 dark:group-hover:text-indigo-400"
+            >
               {next.data.title} →
             </span>
           </a>
