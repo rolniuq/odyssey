@@ -1,0 +1,92 @@
+---
+{
+  "order": 4,
+  "title": "Creating a Database and its Tables",
+  "coreConcept": "A database is a secure digital container, and tables are the highly structured grids inside it that organize your data into rows and columns.",
+  "docSource": "https://www.postgresql.org/docs/current/tutorial-createdb.html",
+  "docTitle": "Creating a Database / Creating a New Table",
+  "difficulty": "beginner",
+  "objectives": ["Understand the structural relationship between a database, a table, and a column","Write the SQL commands to safely create a new database","Define a new table with explicit column names and data types"],
+  "quiz": [
+  { "question": "What must exist before you can create a table in PostgreSQL?",
+    "options": ["A table template","An active database container to hold the table","At least one row of data","An index file"],
+    "answerIndex": 1,
+    "explanation": "You cannot have a table floating in space. A table must live inside a database container. You must first create and connect to a database before you can run CREATE TABLE." },
+  { "question": "Why does PostgreSQL require you to declare a 'data type' (like integer or varchar) for every column?",
+    "options": ["To make the SQL code look more professional","To prevent you from changing your mind later","To act as a strict rulebook, ensuring only valid data enters that column","To automatically encrypt the data"],
+    "answerIndex": 2,
+    "explanation": "Data types are guardrails. By declaring a column as an integer, PostgreSQL will reject any accidental text strings, keeping your data clean and reliable." },
+  { "question": "Which of the following SQL statements correctly creates an empty database named 'library'?",
+    "options": ["NEW DATABASE library;","CREATE TABLE library;","MAKE DATABASE library;","CREATE DATABASE library;"],
+    "answerIndex": 3,
+    "explanation": "The standard SQL command to establish a new database container is 'CREATE DATABASE' followed by the name you want to give it." }
+  ]
+}
+---
+
+Imagine you are setting up a physical archive room for a growing business. 
+
+Before you can file a single piece of paper, you have to do two things:
+1. **Build the room itself** (a secure, locked space).
+2. **Install filing cabinets** inside that room, complete with labeled drawers and folders.
+
+In PostgreSQL, the **Database** is your archive room. It is the grand container. The **Tables** are your filing cabinets. You cannot install a cabinet without a room, and you cannot store files without a cabinet.
+
+{/* DIAGRAM: An empty canvas where a large box labeled 'Database: store_db' fades in. Inside this box, a grid structure labeled 'Table: products' slides into place, showing columns like 'id', 'name', and 'price'. */}
+
+---
+
+### Step 1: Building the Room (The Database)
+
+To create a new, empty container in PostgreSQL, we use the `CREATE DATABASE` command. 
+
+```sql
+CREATE DATABASE store_db;
+```
+
+When you run this, PostgreSQL carves out a isolated space on your hard drive. This space has its own security rules and configuration. At this point, the room is completely empty. There are no tables, no data, and no structure inside.
+
+To do anything useful, you must first "walk into the room" (connect to the database) using your database client. Only then can you start building tables.
+
+---
+
+### Step 2: Installing the Cabinet (The Table)
+
+Unlike a messy desk where you can pile up random papers, a database table is incredibly strict. It is a grid. Before you can add data, you must define the **columns** (the vertical slots) and what **type** of information is allowed to live in each slot.
+
+Here is how we build a table for our products:
+
+```sql
+CREATE TABLE products (
+    product_id integer,
+    name varchar(80),
+    price numeric(10, 2)
+);
+```
+
+Let's break down exactly what this command is doing:
+
+*   **`CREATE TABLE products`**: This tells PostgreSQL to build a new grid named `products` inside the database you are currently connected to.
+*   **`product_id integer`**: This creates a column named `product_id`. The word `integer` is the **data type**. It tells PostgreSQL: *"Only whole numbers are allowed here. If someone tries to write 'apple' in this column, reject it!"*
+*   **`name varchar(80)`**: This creates a column for the product's name. `varchar(80)` means "variable character length, up to a maximum of 80 letters or symbols".
+*   **`price numeric(10, 2)`**: This creates a column for the price. `numeric(10, 2)` is a precise decimal type. It means the number can have up to 10 digits in total, with exactly 2 digits after the decimal point (perfect for dollars and cents, like `12345678.90`).
+
+{/* DIAGRAM: A visual representation of a table structure. The header row highlights 'product_id (integer)', 'name (varchar)', and 'price (numeric)'. An arrow attempts to insert the text 'expensive' into the price column, and a red shield pops up saying 'Rejected: Invalid Type'. */}
+
+By running this command, you have created the blueprint. The table exists, but it has zero rows. It is an empty grid waiting for data.
+
+---
+
+## What this is NOT
+
+*   **It is NOT a spreadsheet:** In Excel, you can type a phone number in row 1, a name in row 2, and a date in row 3 of the exact same column. PostgreSQL tables do not allow this. If a column is defined as an `integer`, every single row in that column *must* be an integer.
+*   **`CREATE DATABASE` is NOT `CREATE TABLE`:** A database is the outer wrapper. A table is the inner structure. You cannot store data directly in a database without a table.
+*   **It is NOT permanent and unchangeable:** While you should plan your columns carefully, you are not locked in forever. You can add, remove, or modify columns later using other commands.
+
+---
+
+## The diagram matters
+
+Understanding how databases contain tables—and how tables contain strictly typed columns—is the foundation of everything you will do in SQL. 
+
+By defining these strict boundaries early, you prevent "dirty data" from corrupting your system. Once your tables are built, you unlock the ability to write safe, lightning-fast queries to insert, read, and analyze your information.
