@@ -1,0 +1,94 @@
+---
+{
+  "order": 3,
+  "title": "Connecting to a Database with psql",
+  "coreConcept": "psql is a terminal-based program (a client) that lets you dial into and talk with a running PostgreSQL database (the server).",
+  "docSource": "https://www.postgresql.org/docs/current/tutorial-accessdb.html",
+  "docTitle": "Accessing a Database",
+  "difficulty": "beginner",
+  "objectives": ["Understand the client-server relationship between psql and PostgreSQL","Identify the connection parameters needed to access a database","Successfully connect to and disconnect from a database using the command line"],
+  "quiz": [
+  { "question": "What is the primary role of psql in the PostgreSQL ecosystem?",
+    "options": ["It is the background engine that stores and manages the physical data files.","It is an interactive command-line client used to send queries to the database server.","It is a programming language used to write database functions.","It is a security firewall that blocks unauthorized network traffic."],
+    "answerIndex": 1,
+    "explanation": "psql is a client application. It doesn't store data itself; instead, it acts as a terminal interface to send SQL commands to the PostgreSQL server and display the results." },
+  { "question": "If you want to connect to a database named 'sales' as the user 'alice', which command is correct?",
+    "options": ["psql -u alice -db sales","psql -h alice -d sales","psql -U alice -d sales","postgres -U alice -d sales"],
+    "answerIndex": 2,
+    "explanation": "In psql, the capital '-U' flag specifies the User, and the lowercase '-d' flag specifies the Database. The command 'postgres' starts the server itself, not the client." },
+  { "question": "You are finished running queries and want to safely disconnect from the psql session. What should you type?",
+    "options": ["exit","quit","\\q","disconnect"],
+    "answerIndex": 2,
+    "explanation": "The backslash command '\\q' (short for quit) is the standard, built-in way to exit the psql interactive terminal." }
+  ]
+}
+---
+
+Imagine you want to check a book out of a highly secure, closed-stack library. You aren't allowed to walk into the back room and grab the book yourself. Instead, you must walk up to a service desk, speak to the librarian through an intercom, tell them what you need, and wait for them to fetch it.
+
+In this scenario, the secure back room is your **PostgreSQL database server** (where the data actually lives). The intercom handset on your desk is **psql**.
+
+`psql` is the official command-line tool that acts as your direct line of communication to PostgreSQL. It doesn't store your data, and it doesn't do the heavy lifting of searching your data. It simply packages your questions (SQL queries), sends them over the line, and displays the answers the server sends back.
+
+{/* DIAGRAM: An interactive animation showing a user typing a command into a terminal labeled 'psql (Client)'. A letter-shaped package travels across a network cable to a database tower labeled 'Postgres (Server)'. The tower processes it and sends a table-shaped package back to the terminal. */}
+
+---
+
+### The Client-Server Handshake
+
+PostgreSQL operates on a **Client-Server architecture**. 
+
+1. **The Server (`postgres`)** is a background process. It runs silently, waiting for incoming connections.
+2. **The Client (`psql`)** is a frontend program. You start it when you want to talk to the server.
+
+To establish a connection, `psql` needs to know the "phone number" of the server. We provide this information using specific flags in our terminal:
+
+```bash
+psql -h localhost -p 5432 -U postgres -d my_database
+```
+
+Let's break down this address:
+*   **`-h localhost` (Host):** Where is the server running? `localhost` means "on this very computer."
+*   **`-p 5432` (Port):** Which "door" is the server listening to? `5432` is the default port for PostgreSQL.
+*   **`-U postgres` (User):** Who are you? Here, we are connecting as the default administrative user, `postgres` (note the capital `U`).
+*   **`-d my_database` (Database):** Which specific library room do you want to enter?
+
+If you run this command and everything is set up correctly, the server will ask for your password. Once entered, your terminal prompt will change to look something like this:
+
+```sql
+my_database=#
+```
+
+This prompt is your confirmation that you are "on the call." You are now directly connected to the database and ready to type SQL.
+
+### Hanging Up
+
+When you are done talking to the database, you don't want to leave the phone off the hook. To close your connection and return to your regular computer terminal, type the "quit" command:
+
+```sql
+my_database=# \q
+```
+
+Press `Enter`, and you will be safely disconnected.
+
+---
+
+## What this is NOT
+
+To keep your mental model clean, remember these key distinctions:
+
+| Concept | What it actually is | What it is NOT |
+| :--- | :--- | :--- |
+| **psql** | A lightweight **client tool** used to send commands. | The database itself. If you delete `psql`, your data is still perfectly safe on the server. |
+| **postgres** | The **database engine** running in the background. | A program you type queries directly into. It has no user interface of its own. |
+| **SQL** | The **language** you speak through the intercom. | The intercom itself. `psql` can run special non-SQL helper commands (like `\q` or `\d`). |
+
+---
+
+## The diagram matters
+
+Understanding the separation between the `psql` client and the `postgres` server is the foundation of all database administration.
+
+{/* DIAGRAM: A network map showing multiple clients (a laptop running psql, a web server running Node.js, and a GUI tool like pgAdmin) all connecting to a single centralized PostgreSQL Server. This highlights that psql is just one of many ways to speak to the same server. */}
+
+Once you master `psql`, you unlock the ability to manage your database from anywhere—whether it's running on your laptop, a server in your office, or a cloud platform halfway across the world. The connection commands remain exactly the same; you simply change the host address.
