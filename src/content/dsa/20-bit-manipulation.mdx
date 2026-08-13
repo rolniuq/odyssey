@@ -1,0 +1,247 @@
+---
+order: 20
+title: 'Bit manipulation: reading and flipping flags'
+coreConcept:
+  'Bits are tiny on/off flags inside every integer — and the XOR trick turns a list of numbers into a
+  running tally where every duplicate cancels itself, leaving exactly the one value you are hunting
+  for, in one pass with no extra memory.'
+docSource: 'https://www.geeksforgeeks.org/bits-manipulation-important-tactics/'
+docTitle: 'Bits manipulation (Important tactics) — GeeksforGeeks'
+difficulty: 'beginner'
+objectives:
+  - 'Read a bit as a tiny on/off flag: test it with AND (&), set it with OR (|), and flip it with XOR
+    (^)'
+  - 'Know the three identities that drive the trick: x ^ 0 = x, x ^ x = 0, and XOR is commutative'
+  - 'Solve Missing Number: fold every index and every value into one XOR so all pairs cancel and only
+    the missing value survives'
+  - 'Solve Single Number: fold the whole array so every duplicate pair cancels and the lone value
+    remains'
+  - 'See why the bitwise fold runs in O(n) time and O(1) memory — no sorting, no hash set'
+quiz:
+  - question: 'What does the bitwise XOR (^) of two equal bits produce?'
+    options:
+      - '1 — because identical bits reinforce each other'
+      - '0 — two identical bits cancel, since XOR outputs 1 only when the bits differ'
+      - '2 — because the bits add up'
+      - 'It depends on the neighbouring bit'
+    answerIndex: 1
+    explanation:
+      'XOR outputs 1 exactly when the two bits differ, so 1 ^ 1 = 0 and 0 ^ 0 = 0 — equal bits always
+      cancel to 0. That single rule is the engine behind Single Number and Missing Number.
+      Reinforcing bits is a feeling, not a rule; 2 would come from arithmetic with carries, which XOR
+      does not do; and XOR is a bitwise gate that never consults its neighbours.'
+  - question: 'What does x ^ 0 equal?'
+    options:
+      - 'x — zero has no bits set, so every bit of x is XORed with 0 and passes through unchanged
+        (the identity)'
+      - '1'
+      - '-x'
+      - 'undefined'
+    answerIndex: 0
+    explanation:
+      '0 has every bit cleared, and a bit XORed with 0 keeps itself: 1 ^ 0 = 1 and 0 ^ 0 = 0. So x ^ 0
+      returns x unchanged, which is why the running XOR always starts at 0. The other options belong
+      to different operations — 1 to an OR, -x to two’s-complement negation, and undefined to a
+      promise bitwise operators never make.'
+  - question: 'What does x ^ x equal?'
+    options:
+      - 'x'
+      - '1'
+      - '0 — a value XORed with itself cancels every bit to 0, because each bit meets an equal copy
+        and equal bits XOR to 0'
+      - '2x'
+    answerIndex: 2
+    explanation:
+      'Every bit of x meets its own copy, all pairs equal, and equal bits XOR to 0 — so x ^ x is all
+      zeroes. This is the cancellation that makes XOR right for "find the value that appears once":
+      two copies of a number vanish, and only a lone copy survives. x and 2x would be results of
+      other operations, and 1 would need the bits to differ.'
+  - question: 'A number folded into the running XOR twice has what net effect?'
+    options:
+      - 'It doubles the tally'
+      - 'None — the second fold undoes the first (x ^ x = 0), so a duplicate pair leaves the tally
+        exactly where it was'
+      - 'It sets the tally to 1'
+      - 'It reverses the array'
+    answerIndex: 1
+    explanation:
+      'Folding a number in twice is x ^ x = 0: whatever the tally held before, a value and then its
+      twin return it to exactly that value, because XOR is its own inverse — the pair disappears.
+      That is why Single Number works: every duplicate pair self-destructs and only the unpaired
+      value remains. Doubling, forcing to 1, and reversing are not bitwise facts.'
+  - question: 'In Missing Number, why does XORing indices with values leave the missing number behind?'
+    options:
+      - 'Because the missing number is the smallest'
+      - 'Every index i is paired with the value at nums[i]; all but the missing value appear twice
+        across the fold (once as a value, once as an index), so they cancel and the missing value is
+        the sole survivor'
+      - 'Because XOR sorts the array'
+      - 'Because the missing number has the largest bits'
+    answerIndex: 1
+    explanation:
+      'The fold covers the full range 0..n once (as indices) and the given values once (as nums). The
+      missing value appears exactly once — as its own index — while every present value appears twice:
+      once as itself and once as the index pointing at some slot. Duplicates cancel, so the single
+      unpaired contribution is the missing number. Size and bit weight play no part, and XOR never
+      sorts anything.'
+  - question: 'The running-XOR solution to Missing Number and Single Number needs how much extra
+    memory?'
+    options:
+      - 'O(n) for a hash set'
+      - 'O(log n) for a counter array'
+      - 'O(1) — one integer keeps the tally, whether the input has 10 numbers or 10 million'
+      - 'O(n²) to store the pairs'
+    answerIndex: 2
+    explanation:
+      'The whole trick lives in a single running XOR, so memory stays O(1) no matter the input size —
+      that is precisely the point of the bitwise fold. A hash set or counter array would answer the
+      same questions but at O(n) memory. The tally is one variable, not a growing structure, and
+      nothing about it scales with the input.'
+  - question: 'How do you test whether an integer n is odd using a single bitwise operator?'
+    options:
+      - 'n & 1 — the least significant bit is 1 for odd and 0 for even, so the AND with 1 answers
+        parity in one step'
+      - 'n | 1 — because OR sets bits'
+      - 'n ^ 1 — because XOR flips the last bit'
+      - 'n >> 1 — because shifting moves the middle'
+    answerIndex: 0
+    explanation:
+      'Parity lives entirely in the least significant bit: odd numbers end in 1, even numbers end in
+      0. n & 1 keeps only that bit, so it is 1 for odd and 0 for even — a single-operation test. n | 1
+      always sets the bit (making the result odd), n ^ 1 flips it without revealing its original
+      value, and a shift discards the very bit you need. Reading and testing flags like this is the
+      everyday half of bit manipulation.'
+problems:
+  - title: 'Missing Number'
+    leetcodeId: 268
+    difficulty: 'easy'
+    prompt: |
+      Given an array nums holding n distinct integers from the range [0, n], find the one number in
+      that range that is missing from the array. The XOR fold does it in one pass with no extra
+      memory: start a running XOR at n, then for every index i fold in both i and nums[i]. Each
+      index/value pair cancels itself; only the missing number remains.
+      The signature is solution(nums). Example: nums [3, 0, 1] → 2.
+    starterCode: |
+      function solution(nums) {
+        // Plan: start the running XOR at n — the missing number can be as
+        // large as n, the one value in [0, n] that has no pair. For each
+        // index i, fold in i and nums[i]: res ^= i ^ nums[i]. Every present
+        // value is XORed twice (once as a value, once as an index) and
+        // cancels to 0; the missing value is XORed once and survives.
+        let res = nums.length;
+        return res;
+      }
+    testCases:
+      - input: [[3, 0, 1]]
+        expected: 2
+      - input: [[0, 1]]
+        expected: 2
+      - input: [[9, 6, 4, 2, 3, 5, 7, 0, 1]]
+        expected: 8
+      - input: [[0]]
+        expected: 1
+      - input: [[1]]
+        expected: 0
+  - title: 'Single Number'
+    leetcodeId: 136
+    difficulty: 'easy'
+    prompt: |
+      Given a non-empty array of integers where every element appears exactly twice except for one,
+      return the single element that appears once. XOR every number into a running total: any value
+      XORed with itself is 0, so every duplicate pair cancels and the lone value survives.
+      The signature is solution(nums). Example: nums [2, 2, 1] → 1.
+    starterCode: |
+      function solution(nums) {
+        // Plan: fold every number into a running XOR starting at 0. A
+        // duplicate pair XORs to 0 (x ^ x = 0), so pairs vanish; the one
+        // number that appears a single time is the only contribution left
+        // in the tally.
+        let res = 0;
+        return res;
+      }
+    testCases:
+      - input: [[2, 2, 1]]
+        expected: 1
+      - input: [[4, 1, 2, 1, 2]]
+        expected: 4
+      - input: [[1]]
+        expected: 1
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './20-bit-manipulation.frames';
+
+<DsaVisualizer title="XOR: every pair cancels itself" frames={frames} client:idle />
+
+## The one question this page answers
+
+Given a pile of numbers, the honest way to find the one that does not fit — the value that appears
+once, or the value that went missing — is to sort or to count. This page answers one question: _can
+a single bitwise fold find the outlier without sorting and without a hash set?_ The answer is yes —
+XOR. Because any value folded in twice cancels itself, a running XOR silently discards every
+duplicate and keeps exactly the value you are hunting for. That is the whole trick, and it is one of
+the few places a bitwise operator solves an entire interview problem on its own.
+
+## Start with an analogy
+
+A row of light switches, each either on (1) or off (0). A single bit is just such a switch. Now add
+one rule: flip a switch twice and it returns to its starting state. That rule — a flip followed by
+its twin cancels — is XOR. Fold the switches of each number into a tally one at a time: every number
+that arrives twice flips its switches off again and vanishes, leaving only the switches that were
+flipped an odd number of times. The lone survivor is the answer you want.
+
+## Bits are tiny on/off flags
+
+Every integer is a string of bits, and each bit is one switch. Three operators do the flag work:
+
+- **AND (`&`) tests.** `n & 1` keeps only the lowest bit, answering parity: 1 for odd, 0 for even.
+- **OR (`|`) sets.** `x | 1` forces the lowest bit on.
+- **XOR (`^`) flips.** `x ^ 1` toggles the lowest bit.
+
+Reading and flipping individual flags is the everyday half — masks, permissions, state bits. The
+interview half is the XOR trick, and it needs only the three identities in the next section.
+
+## XOR: the cancel button
+
+Two identities do all the work:
+
+- `x ^ 0 = x` — zero flips nothing, so a running tally may start at 0 and keep every value folded
+  in.
+- `x ^ x = 0` — a value meets its own copy and cancels completely.
+
+Compose them: fold a number in twice and the second fold undoes the first, leaving the tally exactly
+as it was. That is why pairs disappear. Watch it live in the visualizer: `[4, 1, 2, 1, 2]` folds to
+4 — the two 1s and the two 2s cancel, and 4, the sole loner, survives.
+
+## Two problems, one fold
+
+**Missing Number** runs the fold twice over the range: start the tally at `n` — the largest value in
+`0..n` — then for each index `i` fold in both `i` and `nums[i]`. Every present value is folded
+twice, once as an index and once as a value, so it cancels. The missing value is folded only as its
+index, so it survives. For `[3, 0, 1]` the fold from `n = 3` leaves 2.
+
+**Single Number** is even simpler: fold the whole array into a tally starting at 0. Each duplicate
+pair cancels; the value that appears once remains. For `[2, 2, 1]` the 2s vanish and 1 survives.
+Both are one pass at O(1) memory — no sorting, no hash set.
+
+## What this is NOT
+
+| Misconception                         | Truth                                                                                                                |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| "XOR is a kind of addition"           | It is bitwise with no carries or borrows: bits differ → 1, bits same → 0. The identities, not arithmetic, drive it.  |
+| "XOR is a kind of hashing"            | Hashing needs a table; the XOR fold keeps no memory at all — one integer, O(1) no matter the input size.             |
+| "Bit tricks are micro-optimizations"  | The XOR fold is a genuinely different algorithm — one pass, no extra memory — not a speed tweak on a sorted loop.    |
+| "The XOR trick can find any outlier"  | It only answers pairwise-cancellation shapes — the value folded an odd number of times. It cannot count occurrences. |
+| "Single Number needs a set or a sort" | One XOR fold replaces both; duplicates cancel themselves without ever being compared.                                |
+
+## Why this matters for the rest of the trip
+
+The switch-flipping instinct — XOR cancels pairs — reappears wherever pairs are the enemy:
+hash-based deduplication, sets, and the parity checks scattered through later problems. And the
+deeper habit on display is one this whole track rewards: look for an operation that lets most of the
+data cancel itself, so the exception stands out. Master the two identities and the two problems, and
+bit manipulation stops being magic.
+
+Solve the two problems above. Missing Number folds indices against values; Single Number folds the
+array against itself — make sure you can say, for each, which value "should" have cancelled and why
+it did not.
