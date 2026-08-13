@@ -132,20 +132,27 @@ export const frames: VisualizerFrame[] = [
     rows: [
       {
         cells: [
-          { value: '{', state: 'active' },
+          { value: '{', state: 'done' },
           { value: '[', state: 'done' },
           { value: '(', state: 'done' },
           { value: ')', state: 'done' },
           { value: ']', state: 'active' },
-          { value: '}', state: 'done' },
+          { value: '}' },
         ],
         pointers: [{ index: 4, label: 'char', color: '#6366f1' }],
       },
       {
-        cells: [{ value: '' }, { value: '' }, { value: '' }, { value: '' }, { value: '' }],
+        cells: [
+          { value: '{', state: 'active' },
+          { value: '' },
+          { value: '' },
+          { value: '' },
+          { value: '' },
+        ],
+        pointers: [{ index: 0, label: 'top', color: '#f59e0b' }],
       },
     ],
     caption:
-      "']' popped '[', '}' popped '{'. When the input ends the stack is empty — every opener found its closer, so the string is valid. An unmatched survivor would have said otherwise.",
+      "']' pairs with the '[' on top — pop it, leaving '{' as the new top. The next closer '}' then pops that '{'. When the input ends the stack is empty — every opener found its closer, so the string is valid. An unmatched survivor would have said otherwise.",
   },
 ];
