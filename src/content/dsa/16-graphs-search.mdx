@@ -266,7 +266,7 @@ search plunges down a single path until it bottoms out, then unwinds and tries t
 is the tool for "explore every possibility" and for cycle detection: a path that re-enters a node
 still on the recursion stack has closed a loop, a **back edge**.
 
-## Topological search: might be a special mark
+## Topological order: Kahn's algorithm
 
 Course Schedule's prerequisites form a directed graph. A **topological order** lists courses so
 every course appears after its prerequisites — such an order exists exactly when the graph is
@@ -302,10 +302,11 @@ once and the shape is preserved.
 ## Why this matters for the rest of the trip
 
 Every graph problem you will meet — shortest paths, connected components, topological order, even
-puzzle solving — is a search with a policy bolted on. Longest-line BFS gives you levels and shortest
-paths; DFS with timing marks gives you components, cycles, and topological orders; both give every
-later algorithm its first visit to a node. Nail the "_mark on discovery, then the queue/stack
-decides the tale_" habit now and the harder graph days become variations, not rediscoveries.
+puzzle solving — is a search with a policy bolted on. Layer-by-layer BFS gives you levels and
+shortest paths; DFS with timing marks gives you components, cycles, and topological orders; both
+give every later algorithm its first visit to a node. Nail the "_mark on discovery, then the
+queue/stack decides the tale_" habit now and the harder graph days become variations, not
+rediscoveries.
 
 Solve the two problems above. In Course Schedule, watch Kahn's queue alone decide acyclicity; in
 Clone Graph, watch the visited map decide the shape of the copy.

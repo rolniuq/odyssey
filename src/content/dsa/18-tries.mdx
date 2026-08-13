@@ -55,7 +55,8 @@ quiz:
       'The letters c, a, r are all present as the prefix of "care", so no nodes are built; the only
       remaining act is to set the word-end flag on the node for r — that flag is what tells search
       that "car" is now a complete stored word, distinct from the prefix "car" inside "care". Since
-      r exists there is no single threaded node to create, and the trie is obviously not rebuilt.'
+      the r node already exists in the shared prefix, there is no new node to create, and the trie
+      is obviously not rebuilt.'
   - question: 'search("car") vs startsWith("car") — the difference is…'
     options:
       - 'search is faster for short words'
