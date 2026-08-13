@@ -1,0 +1,243 @@
+---
+order: 4
+title: 'Stacks and Queues'
+coreConcept:
+  'A stack is last-in-first-out: the thing you most recently put on top is the first thing you can
+  take back. Matching, undo, and "most recent first" problems are its home turf.'
+docSource: 'https://en.wikipedia.org/wiki/Stack_(abstract_data_type)'
+docTitle: 'Stack (abstract data type) — Wikipedia'
+difficulty: 'beginner'
+objectives:
+  - 'Explain LIFO precisely: insert and remove both happen at the same end, called the top'
+  - 'Hear when a stack is asked for: pairing, matching, nesting, undo, "nearest unmatched"'
+  - 'Build the Min Stack trick: record the running minimum at every depth so any pop leaves the
+    truth intact'
+quiz:
+  - question: 'What does LIFO stand for, and what does it guarantee?'
+    options:
+      - 'Last In, First Out — the most recently pushed item is the first one popped'
+      - 'Least Important, First Onwards — small items leave the stack first'
+      - 'Listed In Full Order — items come out in the order they were added'
+      - 'Last In, Fastest Out — the newest item is the quickest to access AND ordered first'
+    answerIndex: 0
+    explanation:
+      'LIFO names the single rule that defines the stack: both push and pop act on the very top, so
+      the item added most recently is the first removed. The other options invert the order (FIFO is
+      the queue, not the stack), or confuse "fast access" with the ordering rule itself.'
+  - question: 'Why does Valid Parentheses need a stack and not just a counter of open brackets?'
+    options:
+      - 'A counter cannot say WHICH type of opener is currently open — "([)]" has balanced counts
+        yet is invalid, and only the ordering a stack preserves exposes that'
+      - 'A counter is always faster, so the problem prefers it'
+      - 'Because the input is too short for anything but a stack'
+      - 'Because the problem forbids using integers'
+    answerIndex: 0
+    explanation:
+      'The string must not only balance counts, it must balance _shapes_: the closing bracket has to
+      pair with the most recently opened one, which only a stack can tell you at each step. A
+      counter would approve "([)]", whose counts match but whose nesting is wrong, so a counter
+      cannot possibly be correct for this problem; speed, input length, and forbidden integers are
+      not the issue.'
+  - question: 'When a closing bracket arrives, which stack element must match it?'
+    options:
+      - 'The oldest opener ever pushed'
+      - 'The top — the most recent unmatched opener, which LIFO guarantees to be the one this closer
+        must pair with'
+      - 'Every bracket in the stack at once'
+      - 'The next bracket still to come in the string'
+    answerIndex: 1
+    explanation:
+      'Nesting means a close always pairs with the nearest open still waiting — exactly the top of
+      the stack. The oldest opener belongs to an outer pair that cannot close yet, matching
+      everything would conflate "any match" with "the correct match", and the future is unknown to a
+      single-pass reader.'
+  - question: 'A closing bracket that does NOT match the top immediately tells you…'
+    options:
+      - 'to ignore it and keep scanning, in case a later bracket fixes things'
+      - 'the string is invalid — a closer can only close the nearest unmatched opener, so a shape
+        mismatch at the top proves the whole string cannot be balanced'
+      - 'to swap the two brackets and continue'
+      - 'to push the closer too, growing the stack'
+    answerIndex: 1
+    explanation:
+      'The mismatch is proof, not a problem to solve: ")(" or "(]"[...] cannot be fixed by any later
+      character because the current closer has already chosen the wrong partner. Ignoring, swapping,
+      or pushing onward all try to make the string something other than what it is, and each would
+      let an invalid string pass.'
+  - question: 'How does Min Stack deliver getMin() in O(1)?'
+    options:
+      - 'By sorting the whole stack after every push'
+      - 'By recording, with each pushed value, the minimum seen at that depth — so any pop restores
+        the correct current minimum without scanning'
+      - 'By scanning the stack from top to bottom on each getMin call'
+      - 'By storing a single global minimum that never changes'
+    answerIndex: 1
+    explanation:
+      'Every level of the stack remembers its own running minimum (either alongside the value or on
+      a second mirror stack), so the top always carries the current answer and a pop simply reveals
+      the previous level’s record — O(1) in and O(1) out. Sorting and scanning are both O(n) per
+      call (the exact thing the problem forbids), and a frozen global minimum lies as soon as the
+      true minimum is popped.'
+  - question: 'Why does a single "global minimum" variable break Min Stack?'
+    options:
+      - 'Because it violates O(1) time'
+      - 'Because popping the true minimum leaves you unable to say what the new minimum is — without
+        a per-level record, the answer evaporates with the popped element'
+      - 'Because it uses too much memory'
+      - 'Because it mixes up top() and getMin()'
+    answerIndex: 1
+    explanation:
+      'The difficulty is not reading a value, it is history: when the minimum itself pops, the next
+      minimum can be anywhere beneath it, and a lone variable cannot know it. The fix is to snapshot
+      the minimum at every depth. O(1) time is maintained by the snapshot approach; memory and
+      top/getMin confusion are not the failure mode being tested here.'
+  - question: 'Which everyday object behaves like a stack?'
+    options:
+      - 'A queue of people at a ticket booth'
+      - 'A neat pile of plates: the one you just put down is the first one you pick up'
+      - 'A round-robin scheduler that services items in arrival order'
+      - 'A shuffled playlist that plays in random order'
+    answerIndex: 1
+    explanation:
+      'Plates physically obey LIFO — the top of the pile is both where new plates land and where you
+      grab first. A ticket queue is FIFO (first in, first out — the queue, not the stack), a
+      round-robin is a cycle over the whole list, and a shuffle abandons order altogether.'
+problems:
+  - title: 'Valid Parentheses'
+    leetcodeId: 20
+    difficulty: 'easy'
+    prompt: |
+      Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if
+      the input string is valid. A string is valid if every open bracket closes with the same type
+      of bracket in the correct order.
+      Examples: "()[]{}" → true; "([)]" → false; "{[]}" → true.
+    starterCode: |
+      function solution(s) {
+        // Plan: push every open bracket. On a closing bracket, it MUST equal
+        // the top of the stack (and the stack must not be empty), else return
+        // false. If any open bracket survives at the end, also false.
+        return false;
+      }
+    testCases:
+      - input: ['()']
+        expected: true
+      - input: ['()[]{}']
+        expected: true
+      - input: ['(]']
+        expected: false
+      - input: ['([)]']
+        expected: false
+      - input: ['{[]}']
+        expected: true
+      - input: ['']
+        expected: true
+      - input: ['(']
+        expected: false
+      - input: [']']
+        expected: false
+  - title: 'Min Stack'
+    leetcodeId: 155
+    difficulty: 'medium'
+    prompt: |
+      Design a stack that supports push, pop, top, and getMin, each in O(1). The judge runs you as
+      solution(operations, values): operations[i] is the method name to perform (index 0 is always
+      "MinStack", the constructor) and values[i] holds the push argument, or [] for every other
+      method. Return one result per operation — null for the constructor, push, and pop; the number
+      for top and getMin. Example: ops [MinStack, push, push, getMin, pop, top, getMin], vals [[],
+      [-2], [0], [], [], [], []] → [null, null, null, -2, null, 0, -2].
+    starterCode: |
+      function solution(operations, values) {
+        // Plan: keep a real stack plus a running-min track. Step down
+        // operations in order: push(es) record their value AND the minimum at
+        // that depth; pop/top/getMin behave normally. Constructor, push, pop
+        // yield null; top and getMin yield their number.
+        const out = [];
+        return out;
+      }
+    testCases:
+      - input:
+          - ['MinStack', 'push', 'push', 'push', 'getMin', 'pop', 'top', 'getMin']
+          - [[], [-2], [0], [-3], [], [], [], []]
+        expected: [null, null, null, null, -3, null, 0, -2]
+      - input:
+          - ['MinStack', 'push', 'push', 'getMin', 'getMin', 'pop', 'getMin']
+          - [[], [0], [-1], [], [], [], []]
+        expected: [null, null, null, -1, -1, null, 0]
+      - input:
+          - ['MinStack', 'push', 'push', 'push', 'getMin', 'getMin', 'getMin']
+          - [[], [5], [3], [7], [], [], []]
+        expected: [null, null, null, null, 3, 3, 3]
+      - input:
+          - ['MinStack', 'push', 'push', 'push', 'getMin', 'pop', 'getMin']
+          - [[], [-2], [-2], [-3], [], [], []]
+        expected: [null, null, null, null, -3, null, -2]
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './04-stacks-and-queues.frames';
+
+<DsaVisualizer title="A stack that grows and shrinks" frames={frames} client:idle />
+
+## The one question this page answers
+
+Some problems only make sense if you can ask "what is the _most recent_ thing I have not finished?"
+— the nearest unmatched bracket, the last action to undo, the current minimum while items are being
+pushed and popped. The naive tool for "most recent" is to keep re-reading the whole history. The
+stack asks a sharper question: _can the newest item be the only thing touched, every time?_ Yes —
+and every operation costs O(1).
+
+## Start with an analogy
+
+A neat pile of plates in a cafeteria. You put down a fresh plate — it lands on top. You grab a plate
+— you grab the top one. You never slide plates out of the middle, and you never reach under the
+pile. The _insert_ and the _remove_ are the same physical move against the same end of the pile.
+
+The pile is the stack; the end that all the action happens at is its **top**; "the last plate I put
+down is the first one I pick up" is the guarantee that makes a stack a stack.
+
+## Last in, first out, precisely
+
+A stack is a linear structure with three O(1) operations: **push** (place an item on top), **pop**
+(remove the top item and reveal the one beneath), and often **top/peek** (read the top without
+removing it). There is no "insert in the middle" and no "remove the oldest" — both would break the
+invariant that only the top is reachable.
+
+That strict rule is exactly why recursions, undo histories, and expression parsers are all stacks
+under the hood: the thing you most recently set aside is the thing you are most likely to touch
+next.
+
+### Why matching forces a stack
+
+"([)]" has perfectly balanced counts — two pairs of opened and closed. But it is invalid, because
+")" pairs with the `[` on top rather than the `(` that was opened last. Only the stack knows that
+the `(` was still on the pile above the `[`; a counter of opens cannot see shapes, so a counter
+approves the wrong string. Whenever a problem pairs things and cares about _which_ partner each item
+chose, the top-of-stack order is the only thing that captures it.
+
+### Min Stack: remembering every depth's minimum
+
+The trick question — "what is the current minimum?" — has an O(n)-looking answer if you scan, and a
+broken answer if you cache a single number (pop the true minimum and the cache is a lie). The reason
+it is O(1) is that you snapshot at every level. When a new low is pushed, remember; when something
+pops, the previous level's snapshot is still there, untouched. One extra slot per element, and the
+"current minimum" is always sitting on the top.
+
+## What this is NOT
+
+| Misconception                                    | Truth                                                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| "A stack is basically an array with extra steps" | Arrays allow random access; a stack deliberately exposes only its top. The discipline is the point.                 |
+| "Stacks and queues are interchangeable"          | A stack is LIFO — nearest-first; a queue is FIFO — oldest-first. Flipping one for the other changes the answer.     |
+| "A stack is always the fastest data structure"   | Its O(1)s only apply to the two ends; if you need "the oldest" (a queue) or "the middle", reach for something else. |
+| "Min Stack just stores a min variable"           | One variable breaks on pop; correctness needs the minimum recorded per level so history survives removal.           |
+
+## Why this matters for the rest of the trip
+
+The stack is the operational heart of recursion — every recursive call pushes a frame you cannot
+return past until it pops, which is why "can this be a stack?" is a question to ask before writing a
+recursive function. Queues (the FIFO sibling) and deques show up in the BFS-family problems later,
+and monotonic stack variations appear in the harder "nearest greater/lesser element" problems. Nail
+the pairing-of-the-top habit now and those later days get dramatically cheaper.
+
+Solve the two problems above before moving on — then try _Evaluate Reverse Polish Notation_ and
+_Daily Temperatures_ on LeetCode to see the stack pushed to its parsing and "nearest past" duties.

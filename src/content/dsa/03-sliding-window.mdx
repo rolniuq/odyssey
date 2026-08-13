@@ -1,0 +1,249 @@
+---
+order: 3
+title: 'The Sliding Window'
+coreConcept:
+  'A sliding window keeps one running aggregate over a contiguous slice, so the left edge moves only
+  when the slice must change — every edge index advances at most n times total, turning O(n·k)
+  checks into O(n).'
+docSource: 'https://www.geeksforgeeks.org/window-sliding-technique/'
+docTitle: 'Window Sliding Technique — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Spot the shape: contiguous slice + an aggregate you can update as the slice slides'
+  - 'Move the right edges to claim new ground; move the left edge when the constraint breaks'
+  - 'Argue the O(n) cost the way an interviewer wants: each of the two edges advances at most n
+    times'
+quiz:
+  - question: 'What lives inside the window of "Longest Substring Without Repeating Characters"?'
+    options:
+      - 'Every unique character that has ever appeared in the string, in any position'
+      - 'Exactly the current candidate substring: the contiguous segment at the right edge
+        containing no repeated characters'
+      - 'Characters that have appeared more than once'
+      - 'The entire string minus punctuation'
+    answerIndex: 1
+    explanation:
+      'The window is the run of characters we are still allowed to extend — contiguous, ending at
+      the growing right edge, and free of repeats by the left edge shrinking past the last repeat.
+      The other options describe different quantities: all uniques anywhere (ignores contiguity),
+      the offenders (opposite question), or a whole-string view that is not a window.'
+  - question:
+      'When a repeated character reappears inside the window, why does the left edge jump past its
+      last occurrence?'
+    options:
+      - 'Any start at or before that old occurrence still contains the repeat, so those candidates
+        are all dead — one jump clears every one of them at once'
+      - 'The right edge is not allowed to move, so the left one must compensate'
+      - 'The repeated character must be deleted from the underlying string'
+      - 'The left edge always points at index 0 whenever it can'
+    answerIndex: 0
+    explanation:
+      'A window containing two copies of one character is invalid no matter how far its left edge
+      reaches back, so every left position ≤ the old occurrence is hopeless simultaneously; moving
+      past it kills that whole class in a single move. It is not about balancing edges, mutating the
+      input, or anchoring at zero — the jump is a bulk discard, exactly like a two-pointer move.'
+  - question:
+      'Why does Best Time to Buy and Sell Stock only need a running minimum instead of a full
+      window?'
+    options:
+      - 'Profit depends only on the cheapest past price, so the left ("buy") edge can only ever move
+        to a better price — nothing else about the past matters'
+      - 'Because the market is monotonic and never dips'
+      - 'Because the minimum is always the first element of the array'
+      - 'Because we prefer to buy expensive and sell cheap'
+    answerIndex: 0
+    explanation:
+      'Maximizing profit for a fixed sell day is exactly "current price minus the cheapest earlier
+      price", so the only state worth carrying is that running minimum; a candidate window between
+      any two days other than the cheapest-buy carries no advantage. Monotonicity is not assumed,
+      the min is not always the first element, and the goal is explicitly _cheaper_ buy when it
+      helps.'
+  - question: 'Where does the O(n) claim of a sliding window actually come from?'
+    options:
+      - 'The array is sorted, so comparer is cheap'
+      - 'Each edge index only ever moves forward, at most n times each — so all edge movements cost
+        O(n) while the aggregate updates in O(1) per step'
+      - 'The window is always fixed at width two'
+      - 'Hash maps are involved, which are fast by definition'
+    answerIndex: 1
+    explanation:
+      'The aggregate (sum, max, set of characters) is updated incrementally as edges move, and no
+      full recompute ever happens. Since the right edge and left edge each walk the array at most
+      once, the combined movement is O(n) — this is the two-pointer invariant from Day 2 doing the
+      heavy lifting; it has nothing to do with sorting, fixed width, or hashing.'
+  - question: 'When the window can never become valid, the honest move is…'
+    options:
+      - 'to keep shrinking the left edge forever, hoping validity returns'
+      - 'to let the right edge keep advancing and only shrink the left when the constraint demands
+        it — because constraint-driven shrinking is part of the single pass'
+      - 'to return the entire array as the answer'
+      - 'to re-sort the window after every step'
+    answerIndex: 1
+    explanation:
+      'A variable-width window works by growing the right edge and shrinking the left edge only when
+      a violation appears; even a window that is permanently invalid is still processed correctly in
+      the same O(n) pass (the left edge rides along with the right). Shrinking without a reason
+      wastes moves, returning everything ignores the constraint, and sorting breaks the ordered
+      pass.'
+  - question: 'Which situation is genuinely NOT sliding-window territory?'
+    options:
+      - 'The maximum sum of any k consecutive days'
+      - 'The longest subarray whose total sum stays under a budget'
+      - 'Finding two arbitrary elements that add to a target, regardless of how far apart they are'
+      - 'The length of the longest boarding batch where every passenger is unique'
+    answerIndex: 2
+    explanation:
+      'A sliding window only lives in _contiguous_ slices with an updatable aggregate; a pair of
+      elements that can be anywhere has no "window" to slide, so it is a different shape altogether
+      (hash map, Day 1, or two pointers, Day 2). The other three are textbook windows: fixed- or
+      variable-width over consecutive regions with cheap incremental updates.'
+  - question: 'What precisely does a fixed-size window (width k) do as it advances?'
+    options:
+      - 'Recomputes all k elements from scratch every single step'
+      - 'Adds the new right element and removes the one the window just left behind'
+      - 'Doubles its width every step'
+      - 'Empties itself before sliding'
+    answerIndex: 1
+    explanation:
+      'The entire point of a fixed window is that one element in and one element out keeps the
+      aggregate live in O(1): subtract the outgoing, add the incoming. Recomputing the k elements
+      every step reintroduces the O(n·k) cost the technique exists to kill; widening or emptying the
+      window is a different algorithm.'
+problems:
+  - title: 'Best Time to Buy and Sell Stock'
+    leetcodeId: 121
+    difficulty: 'easy'
+    prompt: |
+      You are given an array prices where prices[i] is the price of a given stock on day i. You want
+      to maximize profit by choosing a single day to buy one stock and choosing a different later day
+      to sell. Return the maximum profit, or 0 if no profit is possible.
+      Examples: [7, 1, 5, 3, 6, 4] → 5; [7, 6, 4, 3, 1] → 0.
+    starterCode: |
+      function solution(prices) {
+        // Plan: carry one running minimum as the best buy price. For each day,
+        // profit = price - minSoFar; track the best profit. No profitable
+        // sale ever appears? Return 0.
+        return 0;
+      }
+    testCases:
+      - input: [[7, 1, 5, 3, 6, 4]]
+        expected: 5
+      - input: [[7, 6, 4, 3, 1]]
+        expected: 0
+      - input: [[1, 2]]
+        expected: 1
+      - input: [[2, 1]]
+        expected: 0
+      - input: [[1]]
+        expected: 0
+      - input: [[1, 2, 4]]
+        expected: 3
+      - input: [[3, 3]]
+        expected: 0
+  - title: 'Longest Substring Without Repeating Characters'
+    leetcodeId: 3
+    difficulty: 'medium'
+    prompt: |
+      Given a string s, find the length of the longest substring without repeating characters.
+      Examples: "abcabcbb" → 3 ("abc"); "bbbbb" → 1 ("b"); "pwwkew" → 3 ("wke").
+    starterCode: |
+      function solution(s) {
+        // Plan: window [left, right]. seen maps each char to its latest index.
+        // When s[right] is already inside the window, jump left just past the
+        // previous occurrence. Track the longest window length as right grows.
+        return 0;
+      }
+    testCases:
+      - input: ['abcabcbb']
+        expected: 3
+      - input: ['bbbbb']
+        expected: 1
+      - input: ['pwwkew']
+        expected: 3
+      - input: ['']
+        expected: 0
+      - input: [' ']
+        expected: 1
+      - input: ['aab']
+        expected: 2
+      - input: ['dvdf']
+        expected: 3
+      - input: ['au']
+        expected: 2
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './03-sliding-window.frames';
+
+<DsaVisualizer title="A window that slides over the market" frames={frames} client:idle />
+
+## The one question this page answers
+
+You have a list and you must evaluate a statistic over _every contiguous slice_ — the best span to
+own a stock, the longest stretch with unique letters. The lazy answer recomputes each slice from
+scratch, and if a slice can be k long you pay **O(n·k)**. The sliding window asks: _can each step
+rebuild the slice with just one element in and one element out?_ Yes — and then a careful double
+pass costs **O(n)**.
+
+## Start with an analogy
+
+A conveyor belt of products rolls past a quality inspector. The inspector examines not one item but
+a batch — the current k on the line. Sliding the tray one slot forward does not mean inspecting all
+k items again: the tray just dropped the leftmost item and picked up the newest on the right. The
+inspector updates the batch summary (weight, count, "still fresh?") with those two changes alone.
+
+The array is the belt. The tray is the window. Its two edges are `left` and `right`, and the
+_aggregate_ is the one number or condition the inspector carries between slots.
+
+## One aggregate, two edges
+
+Every sliding window is the same skeleton. `right` claims new ground; `left` retreats only when the
+claimed ground breaks the constraint. The statistic is not recomputed — it is **updated**: subtract
+what the left edge dropped, add what the right edge picked up. When the aggregate can be updated
+this way, the whole pursuit collapses to a pair of pointers walking the array once.
+
+### Fixed width: exactly k consecutive items
+
+The maximum-of-any-k problem is the purest form: each step adds `nums[right]` and removes
+`nums[left]`, so the batch total stays live in O(1). Nothing ever needs a second look.
+
+### Variable width: shrink when the rule breaks
+
+Longest Substring Without Repeating Characters is the flexible version. `right` extends the current
+unique-letter run; the moment a character already inside the window reappears, the window is
+invalid, and `left` jumps just past that earlier copy to make it valid again. The map of "last seen
+index" is what lets the jump land in one move.
+
+### The invalidation rule — the half the work
+
+Different windows fail differently. Stock prices: the aggregate is "cheapest buy so far", and the
+left candidate resets whenever a new low appears (any pair using the old low is dominated). Longest
+unique substring: the aggregate is "has anything here repeated?", and the left jumps when an
+incoming character collides with one already inside. Naming the invalidation rule first is what
+makes the code write itself.
+
+## The honest cost argument
+
+Two edges, each only ever moving forward: **at most n moves each, 2n total, O(n)**. The pitfall is
+updating the aggregate in O(1) — that is where the "shrink" bookkeeping has to be cheap, exactly
+like the two-pointer discard from Day 2.
+
+## What this is NOT
+
+| Misconception                                     | Truth                                                                                                                    |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| "A sliding window is a loop that slides an index" | It is a pair of edges with an incremental aggregate; the trick is what changes as the edges move, not the loop.          |
+| "It recomputes the slice every step"              | The whole point is O(1) updates: one element in, one element out. Recompute is the non-solution.                         |
+| "It works on any sequenced data"                  | It needs the slice to be contiguous AND the aggregate incrementally updatable — a global pair (Day 1/2 shape) is not it. |
+| "Only fixed widths count"                         | Variable-width must be even more careful about when to pull the left edge; both flavors are O(n).                        |
+
+## Why this matters for the rest of the trip
+
+Sliding window is two pointers with a moving edge (Day 2), plus an aggregate to babysit — keep that
+line in your head and window problems stop being a new category. The pattern returns in _Minimum
+Window Substring_, _Permutation in String_, and the frequency-counting variants, and its "grow the
+right edge, shrink the left when a rule breaks" rhythm is the same one you will use when you meet
+monotonic queues later.
+
+Solve the two problems above before moving on — then try _Fruit Into Baskets_ and _Permutation in
+String_ on LeetCode to feel both a two-pointer and a hashing flavor of the same skeleton.
