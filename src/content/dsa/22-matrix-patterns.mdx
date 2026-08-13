@@ -30,8 +30,9 @@ quiz:
     explanation:
       'Transpose mirrors the matrix across the main diagonal, turning each row into a column; then
       reversing every row flips each row left to right, which is exactly a 90° clockwise rotation.
-      Reversing row order then rows produces a 90° counter-clockwise turn in disguise; reverse-then-
-      transpose is a different composition; and shifting rows just translates the grid.'
+      Reversing the row order then reversing each row flips the grid both vertically and
+      horizontally, composing to a 180° rotation; reverse-then-transpose is a different
+      composition; and shifting rows just translates the grid.'
   - question: 'In a transpose, which pairs of cells get swapped?'
     options:
       - 'Every pair (i, j) with i < j is swapped with its mirror (j, i) — the main diagonal (i === j)
