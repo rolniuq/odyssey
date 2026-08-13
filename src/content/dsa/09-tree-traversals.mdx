@@ -1,0 +1,258 @@
+---
+order: 9
+title: 'Tree Traversals'
+coreConcept:
+  'Traversing a tree is choosing the order in which you visit its nodes: depth-first picks a child
+  before finishing the other (pre/in/post), breadth-first reads level by level through a queue — the
+  shape of your answer decides which order fits.'
+docSource: 'https://en.wikipedia.org/wiki/Tree_traversal'
+docTitle: 'Tree traversal — Wikipedia'
+difficulty: 'intermediate'
+objectives:
+  - 'Distinguish depth-first (pre/in/postorder) from breadth-first (level order) and say which data
+    structure each leans on'
+  - 'Implement level order with a queue: pop one level, push its children for the next'
+  - 'Tell whether two trees are identical by recursing in lockstep — comparing the same position in
+    both trees at every step'
+quiz:
+  - question:
+      'What single fact decides whether you explore the right branch before the left one is
+      finished?'
+    options:
+      - 'The tree size'
+      - 'The traversal order you choose: depth-first recurses down one child before going to the
+        other, breadth-first never jumps levels at all'
+      - 'The sort order of the values'
+      - 'Whether nulls appear in the array'
+    answerIndex: 1
+    explanation:
+      'There is nothing inherent forcing left-first or right-next — it is policy. DFS commits to one
+      child tree entirely before the sibling, whereas BFS reads a whole level before any deeper
+      node. Size, values, and nulls are irrelevant policy inputs.'
+  - question:
+      'In preorder we visit the node itself, then recursively left, then right. What do we print for
+      the tree 1 with left 2 and right 3?'
+    options:
+      - '2, 1, 3'
+      - '1, 2, 3'
+      - '3, 2, 1'
+      - '1, 3, 2'
+    answerIndex: 1
+    explanation:
+      'Preorder = root first. Visit 1, then the entire left subtree (2), then the entire right
+      subtree (3) — so 1, 2, 3. Root-first is the very definition of "pre". Reversing the visit to
+      after-left-first gives the other orders; this specific tree hides the distinction because it
+      is shallow.'
+  - question: 'Breadth-first uses a queue. Why a queue and not the call stack?'
+    options:
+      - 'A stack would depth-first, because it revisits the newest node; a queue hands you the
+        oldest waiting node first, which is exactly left-to-right within one level'
+      - 'Queues are faster than arrays'
+      - 'Stacks cannot hold tree nodes'
+      - 'The call stack is empty during traversal'
+    answerIndex: 0
+    explanation:
+      'FIFO is the shape of "next line please": when you pop a node you push its children, so they
+      wait behind all the nodes already queued from the current level — the oldest member of that
+      level drains before their children. LIFO would have dove straight down a branch. Queue choice
+      and level-order are the same fact.'
+  - question:
+      'Given root 3 with left 9 and right 20 (20 having children 15 and 7), what does level order
+      output?'
+    options:
+      - '[[3], [9, 20], [15, 7]]'
+      - '[[3, 9, 20, 15, 7]]'
+      - '[[3], [20, 9], [7, 15]]'
+      - '[[9], [15, 7], [3, 20]]'
+    answerIndex: 0
+    explanation:
+      'Each level becomes its own inner array, read strictly left-to-right: level 0 is [3], level 1
+      is the queue built from 3 (left then right) = [9, 20], and pushing from that level yields [15,
+      7]. Flattening all levels, or reversing within a level, would mis-record the queue order that
+      defines level order.'
+  - question: 'How does a recursive Same-Tree check stay in lockstep across two trees?'
+    options:
+      - 'Serialize both to level order and compare strings'
+      - 'At each pair (p, q): both null means equal, one null means different, different values mean
+        different, else recurse on (p.left, q.left) and (p.right, q.right)'
+      - 'Compare the trees node-count first'
+      - 'Compare sorted values, ignoring position'
+    answerIndex: 1
+    explanation:
+      'The recursion pins both walkers to the mirror position: left-to-left and right-to-right at
+      every node guarantees we check shape and values together. Node-count-first is a cheap filter
+      but never proves equality; sorted-value comparison and serialization both lose orphaned
+      structure (they cannot tell [1,null,2] from [1,2]).'
+  - question: 'Why can two trees with identical value multisets still fail a Same-Tree check?'
+    options:
+      - 'Because the check compares only roots'
+      - 'Because structure matters: the same values can sit in different left/right slots, and the
+        walker detects that mismatch the moment it descends'
+      - 'Because nulls are ignored'
+      - 'Because traversal order is randomized'
+    answerIndex: 1
+    explanation:
+      'An array of values is orderless once you scramble it; a tree is a shape. [1, 2, 1] (2 as the
+      left child of 1) and [1, 1, 2] (2 as the right child) hold the same values, but the third
+      element hangs on different sides — a lockstep recursion notices at that descent. That, not
+      value equality, is what Same-Tree actually demands.'
+  - question: 'Which traversal would print a binary search tree in sorted order?'
+    options:
+      - 'Inorder — visit left, then the node, then right; the invariant makes every left smaller and
+        every right larger, so the visit order is ascending'
+      - 'Preorder, because it starts at the root'
+      - 'Postorder, because it finishes at the root'
+      - 'Level order, because the root comes first'
+    answerIndex: 0
+    explanation:
+      'Inorder means "node in between its children". Combined with BST order — everything in the
+      left subtree smaller, everything in the right larger — the between-position turns the visit
+      sequence into sorted output. The other orders answer different questions (copy shape,
+      children-before-parents) and do not produce ascending order.'
+  - question: 'When does level order need more memory than a depth-first walk?'
+    options:
+      - 'Never — they are identical'
+      - 'When the tree is wide: the queue can hold a whole level, which at the widest point may be
+        large, while DFS needs only O(depth) frames'
+      - 'When the tree is deep and skinny'
+      - 'Always, because queues allocate per node'
+    answerIndex: 1
+    explanation:
+      'BFS memory peaks at the widest level, DFS at the deepest. A bushy tree favors DFS memory; a
+      lopsided chain favors BFS. Neither is a winner — their space bills follow the shape, which is
+      why engineers pick traversal by the tree they actually face.'
+problems:
+  - title: 'Same Tree'
+    leetcodeId: 100
+    difficulty: 'easy'
+    prompt: |
+      Given two binary trees as level-order arrays p and q (null marks a missing child), return true
+      if they are structurally identical and have identical values. Build both trees from their
+      arrays, then recurse in lockstep: both null -> true; one null or values differ -> false;
+      otherwise compare left with left and right with right.
+      Examples: [1,2,3] vs [1,2,3] -> true; [1,2] vs [1,null,2] -> false.
+    starterCode: |
+      function solution(p, q) {
+        // Plan: build each level-order array into a tree. same(a, b):
+        //   both null -> true; one null -> false; different values ->
+        //   false; else same on (left,left) and (right,right).
+        return false;
+      }
+    testCases:
+      - input: [[1, 2, 3], [1, 2, 3]]
+        expected: true
+      - input: [[1, 2], [1, null, 2]]
+        expected: false
+      - input: [[1, 2, 1], [1, 1, 2]]
+        expected: false
+      - input: [[], []]
+        expected: true
+      - input: [[1], [1]]
+        expected: true
+  - title: 'Binary Tree Level Order Traversal'
+    leetcodeId: 102
+    difficulty: 'medium'
+    prompt: |
+      Given the level-order array of a binary tree (null marks a missing child), return its nodes
+      arranged level by level: an array where the i-th element holds all values of the i-th level,
+      left to right. Build the tree from the array, then BFS with a queue — drain one full level
+      (the nodes currently queued), collecting values, and enqueue their children for the next level.
+      Examples: [3,9,20,null,null,15,7] -> [[3],[9,20],[15,7]]; [] -> [].
+    starterCode: |
+      function solution(values) {
+        // Plan: build nodes from values and BFS with a queue. While the
+        // queue is non-empty, snapshot its length n: pop n nodes into one
+        // level array, pushing each node's children for the next round.
+        return [];
+      }
+    testCases:
+      - input: [[3, 9, 20, null, null, 15, 7]]
+        expected: [[3], [9, 20], [15, 7]]
+      - input: [[1]]
+        expected: [[1]]
+      - input: [[]]
+        expected: []
+      - input: [[1, null, 2, 3]]
+        expected: [[1], [2], [3]]
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './09-tree-traversals.frames';
+
+<DsaVisualizer title="Level by level, through a queue" frames={frames} client:idle />
+
+## The one question this page answers
+
+Day 8 told you how to _compute things_ on a tree (depth, inversion) by recursing. Today the question
+is the other way round: _in what order do you simply visit every node?_ The honest answer is that
+there are several regimes, and the one you want is decided by the shape of the answer you are
+building — deepest-runner-first (depth-first) or level-by-level (breadth-first).
+
+## Start with an analogy
+
+A tour of a building with many floors and many rooms. **Depth-first** is your guide rushing to the
+basement before seeing the lobby's other wing: you finish one whole staircase of rooms, then climb
+back and take the next. Left-to-right at each choice is just your touring policy. **Breadth-first**
+is walking an orderly floor-by-floor sweep: you clear the lobby completely, then every first-floor
+room, then every second-floor room — like a fire warden checking each floor's fire doors in turn.
+
+The lobby is the root; floors are levels; your "memory of rooms still to visit" is a stack (for
+depth) or a queue (for breadth).
+
+## Depth-first: three flavors, one recursion
+
+Depth-first means "finish an entire child before starting the sibling." Exactly when you print the
+node within that recursion gives three names:
+
+- **Preorder** — node, then left, then right. Best for copying a tree's shape.
+- **Inorder** — left, node, right. On a binary search tree this prints sorted order.
+- **Postorder** — left, right, node. Children before parents: the shape for deleting a tree or
+  computing parent tasks from child results.
+
+The base case is always `null` — "nothing to visit" — and the recursion itself is the stack that
+remembers how to climb back.
+
+## Breadth-first: one queue, one level at a time
+
+Level order has a different engine: a FIFO queue instead of the call stack. Servicing one level is a
+recipe with two steps, repeated:
+
+1. Snapshot how many nodes are waiting right now — that is the width of the current level.
+2. Pop exactly that many, recording their values into one level array, and push the children they
+   each reveal.
+
+Because you only push children of nodes you have popped this round, the queue always holds the next
+level and nothing else — the "edge" of the traversal. The result is an array of level arrays,
+`[[3], [9, 20], [15, 7]]`, watched live in the diagram above.
+
+## Same Tree: two walkers in lockstep
+
+"Are these two trees identical?" is not "do they hold the same stuff?" — it is "do they wear the
+same shape and the same labels at every position?" The recursion walks both trees at the same spot:
+
+1. Both `null` — equal.
+2. One `null`, or their values differ — different, and no further work is needed.
+3. Otherwise compare left-with-left and right-with-right.
+
+This is why values-equal-but-shape-different trees fail: the third case carries the two walkers to
+symmetrically opposite slots, where a mismatch pops instantly.
+
+## What this is NOT
+
+| Misconception                               | Truth                                                                                                                |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| "Preorder means fast, postorder means slow" | They are same-cost visits in three orders; performance difference is the queue-vs-stack tree shape, never the label. |
+| "Level order is a depth-first recursion"    | It is BFS — the queue is mandatory; recursing yields a depth-first order instead.                                    |
+| "Same Tree means the values match"          | It means structure AND values at mirrored slots; [1,null,2] and [1,2] differ despite matched content.                |
+| "Inorder always prints sorted output"       | Only on a binary search tree. On any other shape inorder is just a visit order, not a sort.                          |
+
+## Why this matters for the rest of the trip
+
+Level order is the model for the coming queues-heavy problems (serialize/deserialize, right-side
+view, Zigzag level order), and inorder-on-BST is how the tree days connect back to Day 5's binary
+search — same ordering principle, now structural. Meanwhile Same Tree's lockstep recursion is your
+template for every "compare two trees" problem, from subtree checks to tree equality in the Kth
+closest style questions.
+
+Solve the two problems above today — they are your first taste of "the answer shape dictates the
+traversal".

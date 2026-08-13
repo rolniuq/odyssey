@@ -1,0 +1,259 @@
+---
+order: 7
+title: 'Recursion'
+coreConcept:
+  'Recursion solves a problem by solving a smaller version of the same problem, until a base case
+  stops the descent — each function call gets its own stack frame, and every call must shrink toward
+  that base case or the stack overflows.'
+docSource: 'https://en.wikipedia.org/wiki/Recursion_(computer_science)'
+docTitle: 'Recursion (computer science) — Wikipedia'
+difficulty: 'beginner'
+objectives:
+  - 'Split any recursive function into a base case (stops the calls) and a recursive case (shrinks
+    the problem)'
+  - 'Trace the call stack: frames push on the way down and pop with return values on the way up'
+  - 'Fix the exponential blowup with memoization — compute each subproblem once and reuse it'
+quiz:
+  - question: 'What two parts must every honest recursive function have?'
+    options:
+      - 'A loop and a counter that increments forever'
+      - 'A base case that stops the descent and a recursive case that shrinks the problem toward it'
+      - 'Two mutually recursive functions with no way out'
+      - 'A global flag that the caller flips when done'
+    answerIndex: 1
+    explanation:
+      'The base case is the exit door — a value you return without calling yourself again. The
+      recursive case must move toward that door, passing a smaller argument. Without a base case the
+      calls are endless (stack overflow); without shrink toward it, even a base case is unreachable.
+      A loop is a different tool, and a global flag smuggles state in sideways.'
+  - question: 'When factorial(n) calls factorial(n - 1), what happens in memory?'
+    options:
+      - 'The new call overwrites the old one, reusing its frame'
+      - 'A fresh stack frame is pushed, holding its own n; the caller waits, frozen, for the result'
+      - 'Nothing — the call happens in a register'
+      - 'The call runs inside a hidden global variable'
+    answerIndex: 1
+    explanation:
+      'Every invocation gets its own frame on the call stack with its own copy of the parameters.
+      The outer frame cannot be overwritten because it still has work to do after the inner call
+      returns — multiplying its n by the result. That "frozen waiting" is exactly the unwind.'
+  - question: 'Why does naive Fibonacci recursion cost O(2 to the n)?'
+    options:
+      - 'Because each call spawns two smaller calls, and the tree of calls doubles at every level'
+      - 'Because the answer itself is astronomically large'
+      - 'Because it literally copies the array on every call'
+      - 'Because it must sort before recursing'
+    answerIndex: 0
+    explanation:
+      'Fibonacci(n) calls Fibonacci(n-1) and Fibonacci(n-2); each of those calls two more, and so on
+      — a binary tree of calls whose leaf count is exponential in n. The sin is not the branching,
+      it is that the same subproblem keeps being recomputed: Fibonacci(3) is computed again and
+      again from scratch.'
+  - question: 'What does memoization store, and what does it buy?'
+    options:
+      - 'It stores every intermediate answer keyed by its argument, so each subproblem is computed
+        once and reused — exponential falls to linear'
+      - 'It stores the call stack so the program can resume later'
+      - 'It compresses the input array before recursing'
+      - 'It stores the output of the top-level call, nothing more'
+    answerIndex: 0
+    explanation:
+      'A memo (usually a hash map argument -> result) is checked at the top of the function: if the
+      answer for this input is already recorded, return it without recursing. That collapses the
+      duplicate work, so the number of distinct problems solved is just the distinct arguments —
+      O(n) instead of O(2 to the n).'
+  - question: 'What happens when the recursion never reaches a base case?'
+    options:
+      - 'The program silently returns the last partial result'
+      - 'Frames pile up until the stack memory runs out and the program crashes (stack overflow)'
+      - 'The recursion becomes a loop and finishes faster'
+      - 'JavaScript catches it and retries smaller'
+    answerIndex: 1
+    explanation:
+      'Each pending call holds its frame on the stack; without a base case the frames mount without
+      bound until the runtime says enough. The failure is not a logic error reported late — it is a
+      crash, and it is why the shrink-toward-base rule is a hard invariant, not style.'
+  - question:
+      'Climbing Stairs asks for ways to reach stair n taking 1 or 2 steps. Which recurrence matches?'
+    options:
+      - 'ways(n) = ways(n) + 1 for every stair surveyed'
+      - 'ways(n) = ways(n - 1) + ways(n - 2): the last move was a 1-step from n-1 or a 2-step from
+        n-2'
+      - 'ways(n) = 2 * ways(n - 1) exactly, because doubling dominates'
+      - 'ways(n) = ways(n / 2) because steps halve'
+    answerIndex: 1
+    explanation:
+      'The final move decides: to be on stair n you came from n-1 via a 1-step, or from n-2 via a
+      2-step. Since those last moves are disjoint, the counts add. The other choices either double
+      count, invent a rule, or confuse steps with halves.'
+  - question:
+      'A recursive function returns the reverse of a linked list by returning the reversed tail.
+      What is the base case?'
+    options:
+      - 'The input is a number and its value is positive'
+      - 'A null head (or a single node) reverses to itself — stop there'
+      - 'The list is longer than ten nodes'
+      - 'The head value is even'
+    answerIndex: 1
+    explanation:
+      'The empty list and the one-element list are the minimal cases you cannot reduce: both are
+      their own reverse, so you hand them back untouched. Everything else is a recursive case —
+      reverse node.next, then attach the old head at the end of the reversed tail.'
+  - question: 'A loop and a recursion that solve the same problem have what relationship overall?'
+    options:
+      - 'Recursion is always faster because it uses less memory'
+      - 'Loops are always forbidden where recursion works'
+      - 'Both describe repeated work; recursion names the subproblem and pays with stack frames,
+        loops pay with explicit state — equivalent power, different trade'
+      - 'They cannot ever encode the same computation'
+    answerIndex: 2
+    explanation:
+      'Anything iterative you can write recursively and vice versa — the machines are the same. The
+      real difference is legibility and cost: recursion keeps the "reduced problem" explicit and is
+      often the clearer description, but deep recursion costs stack space and each call has overhead
+      — a loop is the leaner engine when the problem is naturally flat.'
+problems:
+  - title: 'Climbing Stairs'
+    leetcodeId: 70
+    difficulty: 'easy'
+    prompt: |
+      You are climbing a staircase with n steps. Each move takes either 1 or 2 steps. Return how
+      many distinct ways you can reach the top. Write it as a recursive function with memoization:
+      ways(n) = ways(n-1) + ways(n-2), with ways(1) = 1 and ways(2) = 2 as the base cases, and store
+      computed answers so you never recompute a subproblem.
+      Examples: n=2 -> 2; n=3 -> 3; n=4 -> 5.
+    starterCode: |
+      function solution(n) {
+        // Plan: memo maps a stair count to its ways. climb(k):
+        //   base: k <= 2 returns k; memo hit returns stored value;
+        //   otherwise climb(k-1) + climb(k-2), stored before returning.
+        return 0;
+      }
+    testCases:
+      - input: [2]
+        expected: 2
+      - input: [3]
+        expected: 3
+      - input: [1]
+        expected: 1
+      - input: [4]
+        expected: 5
+      - input: [5]
+        expected: 8
+      - input: [10]
+        expected: 89
+  - title: 'Fibonacci Number'
+    leetcodeId: 509
+    difficulty: 'easy'
+    prompt: |
+      The Fibonacci numbers are defined as F(0) = 0, F(1) = 1, and F(n) = F(n-1) + F(n-2) for n >= 2.
+      Return F(n). Write it from scratch as a recursive function: pick the base cases, then make the
+      recursive case shrink toward them. Add memoization so large n stays fast.
+      Examples: n=0 -> 0; n=1 -> 1; n=4 -> 3; n=6 -> 8.
+    starterCode: |
+      function solution(n) {
+        // Plan: base cases F(0)=0 and F(1)=1; otherwise F(n-1)+F(n-2).
+        // Cache each result in memo so F(k) is computed exactly once.
+        return 0;
+      }
+    testCases:
+      - input: [0]
+        expected: 0
+      - input: [1]
+        expected: 1
+      - input: [4]
+        expected: 3
+      - input: [6]
+        expected: 8
+      - input: [15]
+        expected: 610
+      - input: [20]
+        expected: 6765
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './07-recursion.frames';
+
+<DsaVisualizer title="One problem, two handcuffed copies" frames={frames} client:idle />
+
+## The one question this page answers
+
+Some problems look like "do this to a whole thing", when they are secretly "do this to a smaller
+thing, then do a little bookkeeping". Recursion asks: _can a function solve its own problem by
+delegating to a smaller version of itself, trusting the smaller call, and combining the result?_ For
+anything that can be defined in terms of itself — factorials, Fibonacci, tree walks — yes.
+
+## Start with an analogy
+
+A factory line where each worker builds a smaller box and hands it to the next worker. Worker #5
+does not know how to build the whole box; they know that the box is "a lid, plus whatever worker #4
+makes". Worker #4 thinks the same and passes to #3, who passes to #2, who passes to #1 — and worker
+#1 has the base case: "the smallest box is just a base, no more nesting, done." Then the answers
+climb back up. Every worker is a stack frame: someone waiting, someone below, one lid at a time
+being locked on.
+
+## Two parts, one contract
+
+Every honest recursive function has:
+
+1. **A base case** — an input so small you answer it directly. It is the exit door: no further call
+   of yourself, just a return.
+2. **A recursive case** — solve the reduced problem by calling yourself with a strictly smaller
+   argument, then combine the answer with your own contribution.
+
+Both must hold. Missing the base case means infinite descent. Missing the shrink means even a base
+case can never be reached, because nothing moves toward it.
+
+### The stack does the remembering
+
+Every call — including recursive ones — pushes a stack frame with its own copy of the parameters.
+The caller is not erased: it is frozen mid-computation, waiting for the child's return value. On the
+way down, frames stack up; on the way up, each pops and returns its answer. That freeze/pop rhythm
+is what "unwinding the stack" means.
+
+### The factorial rehearsal
+
+Factorial is recursion's hello world. As a python-style definition:
+
+- base: factorial(0) = 1
+- recursive: factorial(n) = n × factorial(n - 1)
+
+`factorial(5)` chases down to `factorial(0) = 1`, then multiplies back up: 1 → 1 × 1 → 2 × 1 → 3 × 2
+→ 4 × 6 → 5 × 24 = 120. Say it out loud once and the pattern — shrink, bottom out, multiply back up
+— becomes permanent.
+
+## The exponential trap, and the memo that dodges it
+
+Fibonacci, written naively, is criminal:
+
+- base: fib(0) = 0, fib(1) = 1
+- recursive: fib(n) = fib(n - 1) + fib(n - 2)
+
+Each call makes two children, so the call tree doubles at every level — O(2 to the n). The diagram
+above shows the horror plainly: `fib(3)` and `fib(2)` appear twice. We are redoing identical work.
+
+The fix is **memoization**: keep a map of argument → result. Check the map before recursing; store
+into it after computing. Now every distinct n is computed once and every later request is a lookup —
+exponential becomes linear. This one habit is the difference between climbing stairs instantly and
+watching a small page spin forever.
+
+## What this is NOT
+
+| Misconception                | Truth                                                                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| "Recursion is a faster loop" | It is a different trade: clearer problem decomposition, but stack frames and call overhead cost more than a flat loop. |
+
+| "Recursion is just elegance — one can always use a loop" | Same power, yes — but the
+shrink/base-case lens is often the clearest description, and trees (next days) are awkward as loops.
+| | "A recursive call rewrites the same function" | Each call gets its own frame and its own
+parameters; the caller genuinely pauses to await the child result. | | "Memoization makes recursion
+memory-free" | It buys time by spending a map of size O(n) — a deliberate, visible memory-for-time
+trade. |
+
+## Why this matters for the rest of the trip
+
+Day 8's binary trees are essentially recursive structures — a node is a value plus two smaller trees
+— so depth and inversion fall out as one-line recursive cases. Day 9's traversals (preorder,
+inorder, level order) are the same body under three orderings. And the "reduced subproblem +
+combine" reflex you practiced here is, arguably, your strongest single asset for the heaps day too.
+Solve the two problems above — write them by hand without an editor — before moving on.
