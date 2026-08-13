@@ -155,7 +155,7 @@ export const frames: VisualizerFrame[] = [
         ],
       },
       {
-        cells: [{ value: 1, state: 'active' }, { value: 2 }],
+        cells: [{ value: 2 }, { value: 1, state: 'active' }],
         pointers: [{ index: 1, label: 'top', color: '#f59e0b' }],
       },
     ],
