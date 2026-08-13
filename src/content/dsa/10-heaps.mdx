@@ -238,15 +238,12 @@ size-k structure keyed on distance. Let the k-to-n ratio pick the tool.
 
 ## What this is NOT
 
-| Misconception                                     | Truth                                                                                                                    |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| "A heap is a sorted array"                        | Only vertical invariants hold (parent ≤ children); flat reads are unsorted, and that is fine — the root is all you need. |
-| "Priority queue and binary search tree are twins" | A tree keeps the whole ordering navigable; a heap gives you one value fast and everything else costs you a sift.         |
-
-| "Extract-min always removes the smallest value ever insterted" | It removes the current minimum of
-the live set — values added since may be smaller yet still lose to the sift order. | | "K closest
-needs Pythagorean distance computed" | Squared distance is monotone in distance, so it sorts
-identically — sqrt is dropped without losing correctness. |
+| Misconception                                                 | Truth                                                                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| "A heap is a sorted array"                                    | Only vertical invariants hold (parent ≤ children); flat reads are unsorted, and that is fine — the root is all you need. |
+| "Priority queue and binary search tree are twins"             | A tree keeps the whole ordering navigable; a heap gives you one value fast and everything else costs you a sift.         |
+| "Extract-min always removes the smallest value ever inserted" | It removes the current minimum of the live set — values added since may be smaller yet still lose to the sift order.     |
+| "K closest needs Pythagorean distance computed"               | Squared distance is monotone in distance, so it sorts identically — sqrt is dropped without losing correctness.          |
 
 ## Why this matters for the rest of the trip
 

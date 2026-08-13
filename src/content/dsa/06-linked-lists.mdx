@@ -207,8 +207,8 @@ is no math that predicts address of node k. So **random access is O(n)**, and th
 ### The cost you gain
 
 Inserting or deleting a node, given the pointer to its place, is a matter of splicing arrows:
-`a.next = b.next; b.next = b.next.next` (insert), or `a.next = a.next.next` (delete). No shifting,
-no resizing — O(1). That is why queues and caches pick linked structures.
+`b.next = a.next; a.next = b` (insert), or `a.next = a.next.next` (delete). No shifting, no resizing
+— O(1). That is why queues and caches pick linked structures.
 
 ## The reversal dance: three pointers
 

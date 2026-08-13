@@ -239,16 +239,12 @@ watching a small page spin forever.
 
 ## What this is NOT
 
-| Misconception                | Truth                                                                                                                  |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| "Recursion is a faster loop" | It is a different trade: clearer problem decomposition, but stack frames and call overhead cost more than a flat loop. |
-
-| "Recursion is just elegance — one can always use a loop" | Same power, yes — but the
-shrink/base-case lens is often the clearest description, and trees (next days) are awkward as loops.
-| | "A recursive call rewrites the same function" | Each call gets its own frame and its own
-parameters; the caller genuinely pauses to await the child result. | | "Memoization makes recursion
-memory-free" | It buys time by spending a map of size O(n) — a deliberate, visible memory-for-time
-trade. |
+| Misconception                                            | Truth                                                                                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| "Recursion is a faster loop"                             | It is a different trade: clearer problem decomposition, but stack frames and call overhead cost more than a flat loop.         |
+| "Recursion is just elegance — one can always use a loop" | Same power, yes — but the shrink/base-case lens is often the clearest description, and trees (next days) are awkward as loops. |
+| "A recursive call rewrites the same function"            | Each call gets its own frame and its own parameters; the caller genuinely pauses to await the child result.                    |
+| "Memoization makes recursion memory-free"                | It buys time by spending a map of size O(n) — a deliberate, visible memory-for-time trade.                                     |
 
 ## Why this matters for the rest of the trip
 
