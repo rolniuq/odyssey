@@ -1,0 +1,261 @@
+---
+order: 15
+title: 'Graphs: holding relationships in memory'
+coreConcept:
+  'A graph is a set of nodes plus a set of edges between them, and "how do I store it?" has two
+  classic answers: an adjacency matrix (a V×V grid of edge flags, O(1) edge look-up, O(V²) memory)
+  and an adjacency list (each node keeps its neighbors, O(V + E) memory). The choice, plus grids-as-
+  graphs, is what this page teaches.'
+docSource: 'https://www.geeksforgeeks.org/graph-and-its-representations/'
+docTitle: 'Graph and its representations — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Define a graph by V and E, and tell undirected from directed edges'
+  - 'Build both an adjacency matrix and an adjacency list for the same graph, and compare them on
+    edge look-up, neighbor iteration, and memory'
+  - 'View a cell grid (Number of Islands, Flood Fill) as a graph whose edges are the four neighbors'
+quiz:
+  - question: 'What are the two ingredients of a graph?'
+    options:
+      - 'Rows and columns'
+      - 'A set of nodes V and a set of edges E between them'
+      - 'A root and a heap'
+      - 'Keys and values'
+    answerIndex: 1
+    explanation:
+      'Every graph, tiny city map or social network, is exactly V plus E. Nodes without edges are a
+      boring collection; edges are the relationships that make it a graph. Rows/columns are one
+      *storage* choice, not the definition, and keys/values describe a map, not a graph.'
+  - question: 'How do you read the neighbors of node i from an adjacency matrix?'
+    options:
+      - 'Scan the column titled i'
+      - 'Walk row i and collect every column j where M[i][j] is 1'
+      - 'Count the 0s in row i'
+      - 'Query the diagonal of the matrix'
+    answerIndex: 1
+    explanation:
+      'Row i answers "who is connected to i?": each 1 names a neighbor. And asking "are i and j
+      connected?" is one O(1) look-up at M[i][j]. But finding *all* neighbors costs a full O(V)
+      sweep of the row, which is where the matrix starts to lose.'
+  - question: 'Why does an adjacency matrix spend O(V²) memory even for a sparse graph?'
+    options:
+      - 'Because every node reserves one cell for every possible edge, whether it exists or not —
+        the zeros are stored just like the ones'
+      - 'Because matrices always double their size'
+      - 'Because each row stores a linked list'
+      - 'Because edges are duplicated once per node'
+    answerIndex: 0
+    explanation:
+      'The matrix is a V×V grid of flags; absent edges reserve their flag too. So a graph with
+      thousands of nodes but a handful of edges still pays for a platform thousands of cells large.
+      That is precisely the case where an adjacency list wins big.'
+  - question: 'When is an adjacency list clearly the better store?'
+    options:
+      - 'When you need O(1) look-up of an arbitrary edge'
+      - 'When the graph is sparse — few edges per node — because it stores only real edges and lets
+        you walk a node’s neighbors in the time it takes to read them'
+      - 'When nodes are numbered 1..V'
+      - 'When every pair of nodes is connected'
+    answerIndex: 1
+    explanation:
+      'The list spends O(V + E) memory and hands over a node’s neighbors directly. The matrix
+      outshines it only when you constantly ask "is this exact edge present?" (likely with dense
+      graphs) or V is tiny. Density drives the choice, not habit.'
+  - question: 'Why is a 2D cell grid a graph?'
+    options:
+      - 'It is not a graph; grids are just arrays'
+      - 'Take each cell as a node and each adjacency (here: the four orthogonal neighbors) as an
+        edge — traversing the grid is traversing a graph whose structure is implicit'
+      - 'Because grids have rows and columns'
+      - 'Because grids can be drawn as rectangles'
+    answerIndex: 1
+    explanation:
+      'No adjacency list is ever built for a grid — the edges are implied by position, which is why
+      "grid as graph" problems feel like puzzles rather than graph problems. But BFS, DFS, and
+      reachability reasoning apply unchanged, which is exactly what Islands and Flood Fill exploit.'
+  - question: 'How does Number of Islands avoid counting the same island twice?'
+    options:
+      - 'It marks every land cell as visited during the search that starts there, so a later loop
+        starting inside the same island finds no untouched land'
+      - 'It sorts the grid first'
+      - 'It counts only even-sized islands'
+      - 'It never revisits a cell row by row'
+    answerIndex: 0
+    explanation:
+      'Count one per untouched land cell, then expand from it through the four-neighbor edges,
+      erasing or marking everything it reaches. A later starting cell inside that territory is now
+      water/visited, so the counter never double-counts. The search is just connected-component
+      counting on a grid graph.'
+  - question: 'In Flood Fill, why must the flood stop at different-colored cells?'
+    options:
+      - 'Because colors blend incorrectly'
+      - 'The flood only recolors pixels reachable through same-color steps from the seed — a color
+        boundary is an absent edge in the grid graph, and the flood must respect it'
+      - 'Because the image is always small'
+      - 'Because recoloring costs memory'
+    answerIndex: 1
+    explanation:
+      'The region is a connected component under the rule "adjacent cells of the original color." A
+      different color means no edge exists between the flood’s territory and that cell, so it is
+      left alone. This is precisely reachability from a single seed in a graph where same-color
+      adjacency defines edges.'
+problems:
+  - title: 'Number of Islands'
+    leetcodeId: 200
+    difficulty: 'medium'
+    prompt: |
+      Given a 2D grid of characters '1' (land) and '0' (water), return the number of islands. An
+      island is a group of '1's connected horizontally or vertically — 4-directionally, not
+      diagonally. The grid is a rectangular array of arrays of single-character strings.
+      Example: a 4×5 grid with one connected land block → 1; a grid with three separated blocks → 3.
+    starterCode: |
+      function solution(grid) {
+        // Plan: walk every cell. When you find an unvisited '1', increment
+        // the island count and flood-fill it: explore its up/down/left/right
+        // neighbors, flipping every visited '1' to '0' so it is never
+        // counted again. Count other islands the same way.
+        return 0;
+      }
+    testCases:
+      - input:
+          [
+            ['1', '1', '1', '1', '0'],
+            ['1', '1', '0', '1', '0'],
+            ['1', '1', '0', '0', '0'],
+            ['0', '0', '0', '0', '0'],
+          ]
+        expected: 1
+      - input:
+          [
+            ['1', '1', '0', '0', '0'],
+            ['1', '1', '0', '0', '0'],
+            ['0', '0', '1', '0', '0'],
+            ['0', '0', '0', '1', '1'],
+          ]
+        expected: 3
+      - input: [['0']]
+        expected: 0
+      - input: [['1']]
+        expected: 1
+      - input: [['1', '0', '1'], ['0', '1', '0'], ['1', '0', '1']]
+        expected: 5
+  - title: 'Flood Fill'
+    leetcodeId: 733
+    difficulty: 'easy'
+    prompt: |
+      An image is an array of arrays of integers (pixel colors). Start at the pixel (sr, sc) with
+      its current color, and recolor the whole connected region — every pixel reachable by moving
+      up/down/left/right through pixels of that same starting color — to the new color. Return the
+      final image. Distances are not used; only 4-directional adjacency defines the region.
+      Example: [[1,1,1],[1,1,0],[1,0,1]], start (1,1), color 2 → [[2,2,2],[2,2,0],[2,0,1]].
+    starterCode: |
+      function solution(image, sr, sc, color) {
+        // Plan: if image[sr][sc] already equals color, return image as is.
+        // Otherwise run a flood (stack, queue, or recursion) from (sr, sc):
+        // set the current pixel to color, then visit up/down/left/right
+        // neighbors that are in bounds and share the ORIGINAL start color.
+        return image;
+      }
+    testCases:
+      - input: [[[1, 1, 1], [1, 1, 0], [1, 0, 1]], 1, 1, 2]
+        expected: [[2, 2, 2], [2, 2, 0], [2, 0, 1]]
+      - input: [[[0, 0, 0], [0, 0, 0]], 0, 0, 0]
+        expected: [[0, 0, 0], [0, 0, 0]]
+      - input: [[[0, 0, 0], [0, 0, 0]], 0, 0, 2]
+        expected: [[2, 2, 2], [2, 2, 2]]
+      - input: [[[1, 1, 0], [1, 0, 0]], 0, 1, 3]
+        expected: [[3, 3, 0], [3, 0, 0]]
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './15-graphs-representation.frames';
+
+<DsaVisualizer title="One graph, two warehouses" frames={frames} client:idle />
+
+## The one question this page answers
+
+A graph is a baker's bill of relationships: who is connected to whom, and how. Before any algorithm
+can run, the program must answer a boring-sounding question — _where do I put this shape in memory?_
+There are two classic answers. This page shows both, teaches how to choose between them, and then
+shows that a humble 2D grid is secretly a graph wearing a costume.
+
+## Start with an analogy
+
+Imagine a city you want to navigate. Two ways to store its road map:
+
+- A **spreadsheet of every intersection pair**: rows and columns are all the intersections; each box
+  says "road / no road." To know if Main and Pine connect, peek at one box. But the spreadsheet has
+  a row and column for _every_ intersection, so a city of a million intersections needs a trillion
+  cells even if only a few streets exist.
+- A **driveway-by-driveway robber list**: for each intersection, a short list of the streets that
+  leave it. This takes space proportional to real streets, and to plan a route you walk each
+  intersection's list.
+
+Both describe the same map. One answers "do these two connect?" instantly; the other is smaller and
+easier to walk. Nobody is "correct" — the map only tells you which trade you are about to pay.
+
+## Nodes, edges, V and E
+
+A graph is a set of **nodes** (vertices) and a set of **edges** between them. `V` is the node count,
+`E` the edge count. In an **undirected** graph an edge is two-way (roads); in a **directed** graph
+edges are one-way arrows. Two vertices are **neighbors** when an edge connects them.
+
+## The adjacency matrix
+
+The matrix is the spreadsheet: a `V × V` grid, plus a rule — `M[i][j] = 1` exactly when an edge
+joins `i` and `j`.
+
+- **Edge look-up:** is `i` joined to `j`? One poke at `M[i][j]` — O(1).
+- **Neighbor iteration:** walk row `i`, collect the `1`s — O(V) no matter how few neighbors exist.
+- **Space:** O(V²), with the zeros stored beside the ones. Dense graphs pay it happily; sparse
+  graphs waste it.
+
+The visualizer builds the matrix for a four-node graph — watch the `1`s light up in read row `0`,
+then see how the mirror-image `1`s betray that the graph is undirected.
+
+## The adjacency list
+
+The list is the index-card box: each node keeps an array of its neighbors.
+
+- **Edge look-up:** in the worst case, scan a node's row — O(degree), which is O(V) worst case.
+- **Neighbor iteration:** walk the row — O(degree), as cheap as it gets.
+- **Space:** O(V + E). Sparse graphs cost only what they actually contain.
+
+The visualizer ends with the same four-node graph as a list — count the cells and notice how much
+smaller the sparse story is.
+
+Picking between them is density: when the graph is sparse (most pairs lack an edge) the list wins;
+when you constantly ask "does this exact edge exist?" — or V is small enough not to care — the
+matrix wins. Both appear in interviews; both are expected vocabulary.
+
+## Grids are graphs in disguise
+
+A 2D grid has no stored edges, yet every gray cell has implicit edges to its four orthogonal
+neighbors. So "reachability on a grid" is graph traversal without a graph structure:
+
+- **Number of Islands** counts connected components of `'1'` cells: for each untouched land cell,
+  count one island and expand through the four edges, erasing what you have visited.
+- **Flood Fill** colors one connected region: from the seed pixel, spread through same-color
+  neighbors and stop at the color's boundary — exactly reachability in a graph whose edges are
+  same-color adjacency.
+
+In both, the DFS/BFS machinery of tomorrow's traversal applies to a graph you never materialize.
+
+## What this is NOT
+
+| Misconception                        | Truth                                                                                                                      |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| "An adjacency matrix IS a graph"     | It is one storage choice among two. The graph is nodes plus edges; the matrix is only a picture of it.                     |
+| "Lists are always better"            | Dense graphs and hot edge-look-up questions make the matrix cheaper. Choose by density and workload, not by default.       |
+| "Grids are not real graphs"          | Cell adjacency is an edge relation; grids are graphs with an implied structure, and traversal algorithms apply unchanged.  |
+| "Storing the graph is the hard part" | Representation is the prelude. The questions that actually matter — reachability, shortest paths — come next and reuse it. |
+
+## Why this matters for the rest of the trip
+
+This page is the freehold on which every graph algorithm stands. BFS and DFS traversal take the
+representation you just built; shortest-path and connectivity problems consume it; grids keep
+showing up as compressed graphs in interview problems. Deciding the warehouse first — matrix or list
+— is how every one of those algorithms earns its first line of code.
+
+Solve the two problems above. For each, name the graph hiding inside the grid: which cells are
+nodes, which adjacency is an edge, and what the algorithm is doing as it walks it.

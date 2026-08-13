@@ -1,0 +1,252 @@
+---
+order: 11
+title: 'Greedy: make the safe local move'
+coreConcept:
+  'Greedy means committing to the locally best choice at every step and never looking back. That is
+  only a real algorithm when an exchange argument proves the local choice never blocks the global
+  optimum — then a one-pass scan beats a search.'
+docSource: 'https://www.geeksforgeeks.org/greedy-algorithms/'
+docTitle: 'Greedy Algorithms — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Name the two ingredients of a correct greedy: a local rule plus a proof it is safe to commit to'
+  - 'Track a running frontier (max reach) in Jump Game and explain the invariant that keeps it
+    correct'
+  - 'Spot when greedy lies — like coin change on 1, 3, 4 — and know DP is the escape hatch'
+quiz:
+  - question: 'What turns a local habit into a guaranteed algorithm?'
+    options:
+      - 'Picking the option that looks best and hoping the future agrees'
+      - 'An exchange argument: prove any optimal solution can be reshaped to begin with your greedy
+        pick and still stay optimal'
+      - 'Sorting the input twice for stability'
+      - 'A hash map that remembers every past choice'
+    answerIndex: 1
+    explanation:
+      'Greedy is a proof, not a guess. The exchange argument shows some optimal solution contains
+      your greedy first move, so committing to it cannot close off the optimum. Hoping, sorting
+      twice, and remembering choices are each a different (usually weaker) technique.'
+  - question: 'In Jump Game, what single value does the greedy rule maintain?'
+    options:
+      - 'The longest jump length found anywhere in the array'
+      - 'The farthest index reachable so far — updated as max(reach, i + nums[i]) at every step'
+      - 'The number of jumps attempted since the start'
+      - 'The current index divided by the array length'
+    answerIndex: 1
+    explanation:
+      'One number, the frontier, and it only ever grows. The longest-jump-in-the-array is irrelevant
+      at a given position — what matters is whether YOUR current cell can reach, and the far edge of
+      everything reachable is exactly reach.'
+  - question: 'When is Jump Game guaranteed to fail?'
+    options:
+      - 'Whenever the final value is 0'
+      - 'The instant the walk reaches an index beyond the frontier — reach cannot advance past a
+        cell you can never stand on'
+      - 'When the first value is 0'
+      - 'Whenever the array contains a segment of zeros'
+    answerIndex: 1
+    explanation:
+      'If i ever exceeds reach, there is no landing path to cell i, so no cell past it is reachable
+      either — fail immediately. A zero at the end may still be fine (you land exactly at it), and
+      zeros mid-array can be jumped over.'
+  - question: 'Why may Jump Game forget which landing path reached a cell?'
+    options:
+      - 'Because the array is always sorted ascending'
+      - 'Because it only matters that SOME path exists — any index inside the frontier is reachable
+        somehow, so path details never affect future decisions'
+      - 'Because jumps are unlimited in length'
+      - 'Because the walk restarts from index 0 at every step'
+    answerIndex: 1
+    explanation:
+      'Persistence pays: every cell at or under reach is reachable, and any improvement merely
+      widens reach. Individual jump sequences are interchangeable, so the frontier compresses all of
+      them into one integer.'
+  - question: 'In Can Place Flowers, what is the local test for a plantable plot?'
+    options:
+      - 'The current plot is 0 and both neighbors (or the edges it touches) are 0'
+      - 'The current plot is 0 and at least one neighbor is empty'
+      - 'The plot index is even'
+      - 'The current plot is a 1'
+    answerIndex: 0
+    explanation:
+      'Planting demands an empty plot whose immediate neighbors are empty too — for index 0 only the
+      right neighbor matters, for the last index only the left. "Some empty plot nearby" loosens the
+      rule and breaks the adjacency guarantee.'
+  - question: 'When does greedy reliably fail?'
+    options:
+      - 'Never — greedy is always globally optimal'
+      - 'When the local move cannot be proven safe by an exchange argument — coin change with
+        denominations 1, 3, 4 breaking 6 is the classic failure'
+      - 'When the input array is long'
+      - 'When the value range is huge'
+    answerIndex: 1
+    explanation:
+      'With coins 1, 3, 4, making 6: greedy takes 4 + 1 + 1 (three coins) but 3 + 3 (two coins)
+      wins. No exchange proof exists for that habit, so the habit imagines it is right. Size of
+      input or numbers is beside the point — what fails is the missing proof.'
+  - question: 'How does greedy relate to dynamic programming?'
+    options:
+      - 'They are the exact same algorithm with different names'
+      - 'DP evaluates the best of several alternatives per state; greedy commits to one. When greedy
+        is provably safe, it is an O(n) special case of a choice DP would still explore'
+      - 'DP is always slower than greedy for every problem'
+      - 'Greedy stores a full table of answers'
+    answerIndex: 1
+    explanation:
+      'Both break a problem into overlapping pieces, but greedy prunes all but one branch per step
+      without proof-by-trying. DP keeps every branch. When greedy is safe its shortcut is welcome;
+      when it is not, DP is what still finds the answer.'
+problems:
+  - title: 'Jump Game'
+    leetcodeId: 55
+    difficulty: 'medium'
+    prompt: |
+      Given an array of integers nums, where nums[i] is the maximum jump length you can take from
+      index i, return true if you can reach the last index starting from index 0, or false
+      otherwise. You must not move more than nums[i] steps at index i.
+      Examples: [2,3,1,1,4] → true (0 → 1 → 4); [3,2,1,0,4] → false (you get stranded at index 3).
+    starterCode: |
+      function solution(nums) {
+        // Plan: keep reach = the farthest index reachable so far. Walk i
+        // from 0 left to right. If i ever exceeds reach, there is no path
+        // to i, so fail. Otherwise extend reach = max(reach, i + nums[i]).
+        // Surviving the loop means the last index is reachable.
+        return false;
+      }
+    testCases:
+      - input: [[2, 3, 1, 1, 4]]
+        expected: true
+      - input: [[3, 2, 1, 0, 4]]
+        expected: false
+      - input: [[0]]
+        expected: true
+      - input: [[2, 0, 0]]
+        expected: true
+      - input: [[1, 0, 1, 0]]
+        expected: false
+      - input: [[2, 0]]
+        expected: true
+  - title: 'Can Place Flowers'
+    leetcodeId: 605
+    difficulty: 'easy'
+    prompt: |
+      You have a long flowerbed of integer 0s and 1s, where 1 means a flower is planted and 0 means
+      empty. No two flowers are planted in adjacent plots, and you must respect that rule. Given the
+      flowerbed and an integer n, return true if you can plant n new flowers, or false otherwise.
+      Examples: [1,0,0,0,1], n=1 → true; [1,0,0,0,1], n=2 → false.
+    starterCode: |
+      function solution(flowerbed, n) {
+        // Plan: walk left to right. A plot is plantable when it holds 0 and
+        // both neighbors (or the edges) also hold 0. Plant greedily there,
+        // count one, and keep walking; return whether count reaches n.
+        return false;
+      }
+    testCases:
+      - input: [[1, 0, 0, 0, 1], 1]
+        expected: true
+      - input: [[1, 0, 0, 0, 1], 2]
+        expected: false
+      - input: [[0, 0, 0, 0, 0], 3]
+        expected: true
+      - input: [[0, 0, 1, 0, 0], 2]
+        expected: true
+      - input: [[0, 1, 0], 1]
+        expected: false
+      - input: [[1], 0]
+        expected: true
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './11-greedy.frames';
+
+<DsaVisualizer title="The reachable frontier, always advancing" frames={frames} client:idle />
+
+## The one question this page answers
+
+"What if I always make the locally best choice and never look back — is the final answer still the
+global best?" For a wide class of problems the answer is **yes**, and the reward is comedy: instead
+of exploring many plans, the algorithm walks once, committing as it goes. Greedy is not a hope or a
+vibe — it is a specific, **verifiable property**. This page teaches the property, shows the proof
+shape, and demonstrates where the habit is a trap.
+
+## Start with an analogy
+
+A cashier making change from a drawer of quarters, dimes, nickels, and pennies uses a simple ritual:
+_take the largest coin that fits, repeat._ For 67 cents: quarter, quarter, dime, nickel, two
+pennies. It is obviously optimal for these four denominations, and nobody second-guesses it.
+
+But the habit is what is on trial, not the coins. If the drawer held only 1s, 3s, and 4s, the same
+ritual breaks 6 cents as 4 + 1 + 1 — three coins — while 3 + 3 uses two. The habit was never a
+general law; it was a habit with a hidden proof that happened to hold for the first coin set.
+
+That is the whole discipline of greedy: **make a local rule, but only trust it once you can prove it
+safe.** A proven habit becomes a one-pass algorithm; an unproven one is a guess wearing a costume.
+
+## The recipe: a local rule, then a proof
+
+Every greedy algorithm is built from two parts:
+
+1. **A local rule** — the move you always make when you look at the current state.
+2. **A safety proof (exchange argument)** — show that any optimal solution can be rearranged so its
+   _first_ step is exactly your greedy first step, without losing optimality. Once that holds, the
+   same argument applies to the remainder, and greedy is correct by induction.
+
+The exchange argument is the difference between "it makes sense" and "it is correct." If you cannot
+even sketch one, you do not have a greedy solution yet — you have a candidate.
+
+## Jump Game: one number, the whole frontier
+
+Jump Game gives you an array where `nums[i]` is the maximum jump from index `i`. Notice what the
+problem does **not** ask: _which_ hops to take. It asks only _whether any_ landing path exists. That
+collapse is exactly the greedy opening.
+
+Track one integer: `reach`, the farthest index reachable from anywhere seen so far. Walk `i` left to
+right; for each cell inside the frontier, extend it:
+
+```
+reach = max(reach, i + nums[i])
+i more than reach  ->  stuck, return false
+```
+
+The invariant: every index at or under `reach` is reachable by _some_ path, so individual paths are
+interchangeable and can be forgotten. The exchange argument: reaching farther can never make you
+reach _fewer_ cells, so extending is always safe. The visualizer above replays `[2, 3, 1, 1, 4]` —
+watch the marker slide to the last index.
+
+## Can Place Flowers: verify a local window
+
+Can Place Flowers asks whether `n` flowers fit under an adjacency ban. The local rule is immediate:
+a plot is plantable if it is `0` **and** its neighbors (or the edge) are `0`. Greedy plants the
+leftmost plantable plot and moves on.
+
+Why is that safe? Planting at the earliest valid spot never hurts future capacity: any later
+planting that a different scheme places at the same or further index is not blocked by a plant that
+came _earlier_ than both. You can prove, step by step, that greedy stays as good as any plan — the
+"greedy stays ahead" variant of the exchange argument.
+
+## When the safe habit lies
+
+Return to the coins. Denominations 1, 3, 4 and amount 6: greedy says three coins, truth says two.
+The lesson is not "greedy is unreliable" — it is that **every greedy claim must carry its proof.**
+When no exchange argument exists, the honest tool is dynamic programming: instead of committing to
+one local choice, keep the best of _all_ choices at each state. Tomorrow's pages teach exactly that.
+
+## What this is NOT
+
+| Misconception                              | Truth                                                                                                                         |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| "Greedy is guessing well"                  | It is an exchange argument plus induction. Without the proof you have a heuristic, which may part ways from optimal.          |
+| "Greedy always needs to look ahead"        | A correct greedy never looks ahead — the safety proof is what replaces looking, and the result is a one-pass scan.            |
+| "Greedy and DP pick the same moves"        | DP evaluates all local choices per state; greedy commits to one. Greedy is an O(n) special case that is only sometimes valid. |
+| "A greedy failure means the idea is wrong" | The idea — deciding locally — is fine; the local _rule_ lacked proof. Change the rule or switch to DP, not the discipline.    |
+
+## Why this matters for the rest of the trip
+
+Interval scheduling, Huffman coding, Dijkstra's shortest path, and the MST algorithms (Kruskal,
+Prim) are all greedy ideas — each one shipped with a proof. Recognizing "this looks greedy" is
+worthless until you can also answer "and why is it safe?" Teaching yourself to reach for that
+question first will save you from a whole family of elegant-but-wrong submissions.
+
+Solve the two problems above — and before coding each one, write its exchange argument in one
+sentence in your head. If a sentence is impossible, the problem probably wants DP, which is the very
+next page.

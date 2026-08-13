@@ -1,0 +1,236 @@
+---
+order: 14
+title: 'Backtracking: build, try, un-build'
+coreConcept:
+  'Backtracking explores a forest of partial decisions depth-first: grow a candidate, check whether
+  it can still win, and when it cannot, un-choose the last decision and try the next. Pruning —
+  never recursing into a branch that is provably dead — is what turns "try everything" from a bomb
+  into a search.'
+docSource: 'https://www.geeksforgeeks.org/backtracking-algorithms/'
+docTitle: 'Backtracking Algorithms — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Describe the choose–try–un-choose rhythm that powers every backtracking search'
+  - 'Generate all subsets and all permutations with pruning on invalid prefixes'
+  - 'State exactly what pruning is and why it only ever removes provably-dead work'
+quiz:
+  - question: 'What is the core rhythm of backtracking?'
+    options:
+      - 'Sort, then binary search the answer'
+      - 'Choose a next piece, recurse on the remainder, and after the recursion returns, un-choose
+        it so a sibling branch can reuse the earlier decisions'
+      - 'Try every piece forever until memory runs out'
+      - 'Build candidates only by insertion at the front'
+    answerIndex: 1
+    explanation:
+      'The un-choose is the soul of the method: before a call returns you must undo the piece you
+      added, or the next sibling would inherit phantom decisions. Choose and recurse is just one
+      branch; it is the paired un-choose that lets every branch walk the whole tree with one shared
+      prefix.'
+  - question: 'For [1, 2, 3], how many leaves sit at the bottom of the subset search tree?'
+    options:
+      - 'Six, one per permutation'
+      - 'Eight, one per subset — 2^n, since each element is either in or out'
+      - 'Three, one per element'
+      - 'Nine, one per pair'
+    answerIndex: 1
+    explanation:
+      'A subset is a yes/no vote per element, so there are 2^3 = 8 of them including the empty set.
+      Permutations, by contrast, count n! = 6. The depth of the tree is the number of decisions; the
+      width of leaves is what your search has to visit unless it prunes.'
+  - question: 'Why does the permutation search refuse to recurse with an already-used element?'
+    options:
+      - 'Because the prefix stores numbers, and reusing one would repeat a position'
+      - 'A valid permutation uses each element exactly once, so a prefix containing a duplicate can
+        never grow into a valid leaf — recursing would only waste frames on a provably-dead branch'
+      - 'Because duplicates make sorting harder'
+      - 'Because large prefixes overflow the stack'
+    answerIndex: 1
+    explanation:
+      'That used-check is a prune, not an opinion: any completion of a duplicate-prefix is, by
+      definition, not a permutation. Cutting it before recursing saves the whole subtree beneath it.
+      Pruning exists exactly for branches you can prove have no valid leaf anywhere below.'
+  - question: 'In the subsets problem, what is pruned?'
+    options:
+      - 'Nothing — every subset is valid, so every leaf is accepted and the tree is fully walked'
+      - 'Every branch that contains an even number'
+      - 'The empty set'
+      - 'All leaves at odd depths'
+    answerIndex: 0
+    explanation:
+      'Backtracking can run without a single prune: Subsets accepts all 2^n leaves. The useful
+      contrasts come loaded on the same machinery — in other problems you prune infeasible or
+      non-improving branches the same way permutations prune duplicates here.'
+  - question: 'How does the depth of a backtracking tree relate to the size of a solution?'
+    options:
+      - 'Depth is always 2'
+      - 'The depth is the number of decisions in one complete candidate — n elements for a
+        permutation, the length of a prefix for subsets — and branching happens at each level'
+      - 'Depth is exponential in n'
+      - 'Depth depends on the sorting order'
+    answerIndex: 1
+    explanation:
+      'A fresh candidate is built one decision at a time, and each level of the tree is one such
+      decision, so depth equals candidate size. Leaves could be exponential in n, which is exactly
+      why you prune: the tree is a pyramid of shared prefixes, and killing one node deletes its
+      whole subtree.'
+  - question: 'What is the one thing that makes backtracking different from plain recursion?'
+    options:
+      - 'It never calls itself'
+      - 'It explicitly maintains a mutable partial answer and reverts changes before returning —
+        state is passed down, mutated, and rolled back, not rebuilt from scratch'
+      - 'It always uses a queue'
+      - 'It outputs answers in sorted order by force'
+    answerIndex: 1
+    explanation:
+      'Recursion passes copies of small values; backtracking hands a shared, growing candidate down
+      the tree, modifies it, recurses, then undoes the modification. That shared state is the
+      efficiency that recursion-with-copies lacks, and the rollback is the discipline that keeps it
+      safe.'
+  - question: 'When you prune a branch, what are you claiming?'
+    options:
+      - 'That the branch is merely unlikely to be useful'
+      - 'That no valid or better solution can possibly lie anywhere under it, so skipping its whole
+        subtree changes the result of the search by nothing'
+      - 'That the branch is expensive to compute'
+      - 'That the branch contains a cycle'
+    answerIndex: 1
+    explanation:
+      'A safe prune is a proof, not a hope: the branch is dead by definition (a duplicate in a
+      permutation) or dominated (a partial answer that cannot improve the best known). If the reason
+      is not airtight, pruning may cut the real answer — the classic subtle bug in backtracking.'
+problems:
+  - title: 'Subsets'
+    leetcodeId: 78
+    difficulty: 'medium'
+    prompt: |
+      Given an array of integers nums, return all possible subsets (the power set). The sandbox
+      judge compares arrays exactly, so the starter plan produces a fixed deterministic order: with
+      nums = [1,2,3] the answer is [], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3] — build every
+      subset with a depth-first "grow the current subset by any later element" walk, recording the
+      current subset at every node. The solution set must not contain duplicate subsets.
+    starterCode: |
+      function solution(nums) {
+        // Plan: depth-first backtracking with an index. At every call, push
+        // A COPY of the current subset to the result. Then for each j from
+        // the index onward, add nums[j], recurse with j + 1, and pop it back
+        // (the un-choose). This order matches the judge's expected output.
+        return [];
+      }
+    testCases:
+      - input: [[1, 2, 3]]
+        expected: [[], [1], [1, 2], [1, 2, 3], [1, 3], [2], [2, 3], [3]]
+      - input: [[0]]
+        expected: [[], [0]]
+      - input: [[]]
+        expected: [[]]
+      - input: [[1, 2]]
+        expected: [[], [1], [1, 2], [2]]
+  - title: 'Permutations'
+    leetcodeId: 46
+    difficulty: 'medium'
+    prompt: |
+      Given an array of distinct integers nums, return all permutations — every ordering of the whole
+      array. The judge compares arrays exactly, so produce them in the canonical depth-first order:
+      with nums = [1,2,3] the answer is [1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1] — at
+      each level, try the unused values in their array order.
+    starterCode: |
+      function solution(nums) {
+        // Plan: a prefix and a share of used flags. At each level, loop the
+        // values in array order; skip (PRUNE) any value already used; add
+        // it, recurse, then un-choose it. Accept when prefix length equals
+        // nums.length. This order matches the judge's expected output.
+        return [];
+      }
+    testCases:
+      - input: [[1, 2, 3]]
+        expected: [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]
+      - input: [[0, 1]]
+        expected: [[0, 1], [1, 0]]
+      - input: [[1]]
+        expected: [[1]]
+      - input: [[1, 2]]
+        expected: [[1, 2], [2, 1]]
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './14-backtracking.frames';
+
+<DsaVisualizer
+  title="The permutation decision tree, pruned at the duplicates"
+  frames={frames}
+  client:idle
+/>
+
+## The one question this page answers
+
+"Enumerate every arrangement" sounds like a job for a dozen nested loops — appalling for `[1, 2, 3]`
+(6 answers) and impossible by hand for `[1, 2, 3, 4, 5, 6, 7]` (5040 answers). Backtracking asks a
+sharper question: _can I grow one candidate at a time, and give up on a branch the moment it is
+provably useless_ — so every dead end is cut before its whole subtree is explored? The answer is the
+choose–try–un-choose dance, and the cutting is called pruning.
+
+## Start with an analogy
+
+Organizing seven books on a shelf: for the first slot you try each candidate book and leave the rest
+waiting; for the second slot you try each _remaining_ book; and the moment you realize a book is
+already on the shelf, you simply skip it — no ceremony. When a shelf gets to the end, write down the
+ordering, then pick the last book up and put it back, so the space is free for the next ordering.
+
+That "put it back" is the un-choose. Without it, your second idea would start with the first
+bookshelf already half-filled and every ordering would be nonsense.
+
+## The decision tree
+
+Think of the search as a tree. The root is the empty candidate. Each edge is one decision — "add
+this book / this number." Each node is a **partial answer** (a prefix). Leaves are complete answers:
+a full shelf, a full permutation, a finished subset.
+
+- **Choose** — extend the current prefix with the next piece.
+- **Try** — recurse; the child node explores every completion of that prefix.
+- **Un-choose** — when the recursion returns, remove the piece, so the sibling branch starts from
+  the _same_ prefix.
+- **Prune** — before recursing, skip any piece that makes the branch provably invalid. This is what
+  pens in the tree: one skipped node deletes its whole subtree.
+
+The visualizer replays the permutation tree for `[1, 2, 3]` — watch the ✗ branch (appending an
+already-used number) get cut, and the six leaves, one per accepted permutation.
+
+## Subsets: every leaf accepted
+
+Subsets is backtracking where pruning sleeps: since every subset is valid, the search simply visits
+every node of the tree and records the current prefix at each one. With the "grow by any later
+element" walk, the recorded nodes for `[1, 2, 3]` come out in a clean, repeatable order: `[]`,
+`[1]`, `[1, 2]`, `[1, 2, 3]`, `[1, 3]`, `[2]`, `[2, 3]`, `[3]`.
+
+That order is not random — it falls out of the un-choose rule. When you return from `[1, 2]` you
+have `[1]` again, so the next sibling naturally becomes `[1, 3]`. A stable story for a stable
+output.
+
+## Permutations: pruning does the real work
+
+Permutations demand every element appear exactly once. The search maintains a **used** marker; at
+every level it loops the values in array order and prunes any value already used — the branch is
+provably dead because a permutation with a repeated element is not a permutation. It only recurses
+into fresh values, so the tree is instantly trimmed from n branches per node to n − depth, and the
+leaves are exactly the n! permutations, in a canonical order.
+
+## What this is NOT
+
+| Misconception                             | Truth                                                                                                                                  |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| "Backtracking is brute-force enumeration" | Enumeration plus proof-based pruning: dead subtrees are cut _before_ descent, which is what separates it from a careless flat loop.    |
+| "Un-choosing is an optional cleanup step" | It is load-bearing. Forget the pop and every sibling branch inherits the previous branch's elements.                                   |
+| "Pruning is an optimization you can skip" | A wrong prune changes the answer; an absent prune re-explores a provably dead subtree. Both are real, and only the latter is safe.     |
+| "Backtracking and DP are rivals"          | Backtracking explores alternatives; DP remembers repeated subanswers. Same tree, different trade — memoize when the same state recurs. |
+
+## Why this matters for the rest of the trip
+
+The pattern behind Subsets and Permutations is the engine beneath N-Queens, combinations, and
+word-search style problems, and it leans directly on the recursion you studied on Day 7. The
+discipline transfers far beyond enumeration: anytime you test a partial solution and walk it back,
+you are doing the choose–try–un-choose dance. And when you notice the same partial states appearing
+again and again, that is the signal to add a memo and let DP take over.
+
+Solve the two problems above. Before you code, draw the decision tree for a tiny input and mark
+which edge gets pruned — the tree is the algorithm; the code is just the tree in a loop.
