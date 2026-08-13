@@ -1,0 +1,280 @@
+---
+order: 18
+title: 'Tries: prefix machines'
+coreConcept:
+  'A trie is a tree where the path from the root to a node spells a string — every node stores one
+  character, its children are the next possible letters, and a node marked word-end closes a stored
+  word. Insert, search, and "does any word start with this prefix?" all run in O(L), the length of
+  the string, no matter how many words are stored.'
+docSource: 'https://www.geeksforgeeks.org/trie-insert-and-search/'
+docTitle: 'Trie (Insert and Search) — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Build a trie node from two facts: children (the next letters) and a word-end flag'
+  - 'Insert a word by walking existing nodes and creating only the new ones'
+  - 'Distinguish search from startsWith by whether the final node carries the word-end mark'
+  - 'See why a trie collapses shared prefixes, which is what makes word-squares and Word Search II
+    practical'
+  - 'Weigh the trade: O(L) per operation against the memory of a children array per node'
+quiz:
+  - question: 'What two pieces of information does a trie node carry?'
+    options:
+      - 'A value and a balance factor'
+      - 'A map/array of children (the next possible letters) and a flag saying whether a complete
+        word ends at this node'
+      - 'A parent pointer and a height'
+      - 'A sorted list and a hash key'
+    answerIndex: 1
+    explanation:
+      'The node IS one character along the path; its identity is captured by the path that leads to
+      it, so it needs only the forward options (children) and one bit saying "a word ends here".
+      Balance factors and heights belong to AVL/heap families; a parent pointer is unnecessary
+      because all operations walk root-down; values alone cannot reconstruct which strings exist.'
+  - question: 'During insert, when does a new node get created?'
+    options:
+      - 'For every letter of the word, every time'
+      - 'Only when the needed child is missing — shared prefixes reuse existing nodes, and only the
+        letters a new word does not share create fresh nodes'
+      - 'Only for the first letter'
+      - 'Never; the trie is pre-populated'
+    answerIndex: 1
+    explanation:
+      'Insert follows children letter by letter, creating a node only when the next character is
+      absent. Reusing shared prefix nodes is the entire point — "cat" and "care" each pay for the
+      "ca" spine once. Creating every letter blindly defeats the sharing; the first letter is not
+      special (it too may already exist), and a pre-populated trie cannot accept new words.'
+  - question: 'Inserting "car" into a trie that already holds "care" creates how many new nodes?'
+    options:
+      - 'Three — c, a, and r'
+      - 'None — c, a, and r already exist in the shared path, so insert merely marks the node for r
+        as a word end'
+      - 'One — only the r node, since c and a already exist'
+      - 'It replaces the whole trie'
+    answerIndex: 1
+    explanation:
+      'The letters c, a, r are all present as the prefix of "care", so no nodes are built; the only
+      remaining act is to set the word-end flag on the node for r — that flag is what tells search
+      that "car" is now a complete stored word, distinct from the prefix "car" inside "care". Since
+      r exists there is no single threaded node to create, and the trie is obviously not rebuilt.'
+  - question: 'search("car") vs startsWith("car") — the difference is…'
+    options:
+      - 'search is faster for short words'
+      - 'search must end at a node marked WORD END, otherwise the string is only a prefix;
+        startsWith needs only the path to exist, end mark or not'
+      - 'startsWith returns the count of matches'
+      - 'They never differ'
+    answerIndex: 1
+    explanation:
+      'Both walk the same path; search then demands the terminal node carry the end-of-word flag,
+      and returns false if it does not (the string is merely a prefix of some longer stored word).
+      startsWith is satisfied by the path existing and returns true. Speeds are the same; "count of
+      matches" is a different extension; and they differ precisely on words that are prefixes of
+      others.'
+  - question: 'Why is search in a trie O(L) — independent of the number of words?'
+    options:
+      - 'Because tries are sorted'
+      - 'Each step descends one child chosen by one character; never scanning the whole collection —
+        only the word’s own length L controls the walk'
+      - 'Because the trie caches every query'
+      - 'Because words are hashed before being stored'
+    answerIndex: 1
+    explanation:
+      'The trie is not compared set-wise like a hash set nor scanned like a list; every operation
+      moves one node per character along the path the character names. Hash sets and balanced trees
+      look up in ~O(1) or O(log n) respectively, but neither offers the crucial extra ability the
+      trie has — prefix queries — which is exactly where this structure shines. Hashing words away
+      would destroy the prefix shape that makes the trie a trie.'
+  - question: 'In Word Search II, why is a trie of the words a better device than a hash set?'
+    options:
+      - 'A hash set cannot store strings longer than ten letters'
+      - 'Walking the board, the shared trie lets the search die the moment the current letter path
+        stops matching ANY word, instead of asking a set about every possible suffix'
+      - 'A trie is always faster at lookups than a set'
+      - 'The trie sorts the results automatically'
+    answerIndex: 1
+    explanation:
+      'Backtracking on the board tries prefixes; the trie is a single structure that tells you in
+      O(1) whether this prefix is still alive inside any word, so dead branches are pruned as soon
+      as they appear. A hash set can only answer "is this complete STRING present?", forcing you to
+      test every complete candidate word separately — precisely the work the trie collapses. Lookup
+      speed of a single word is not the point, and a trie about words stores nothing that sorts
+      results for you.'
+  - question: 'The real cost paid by trie nodes is…'
+    options:
+      - 'hard disk space'
+      - 'memory — each node reserves a children array (or map) for up to an entire alphabet, so a
+        long, sparse vocabulary stores many empty slots, and the sharing of prefixes is the
+        compensating win'
+      - 'compile time'
+      - 'extra pointer chases only for lowercase letters'
+    answerIndex: 1
+    explanation:
+      'Every node pays for its child slots whether or not all are used, so tries waste memory on
+      sparse vocabularies — the classic remedy is abandoning the full array for a map. This overhead
+      is the price paid for O(L) prefix power; compile time is irrelevant, the lowercase claim is
+      baseless, and you do not get pointer-chasing escape by staying lowercase.'
+problems:
+  - title: 'Implement Trie (Prefix Tree)'
+    leetcodeId: 208
+    difficulty: 'medium'
+    prompt: |
+      Implement a prefix tree. The judge runs your code as solution(operations, args) where
+      operations[i] is a method name and args[i] holds its arguments (always [] except for insert,
+      which receives [word]). operations[0] is always "Trie", the constructor. Return one result
+      per operation: null for "Trie" and "insert", and a boolean for "search" and "startsWith".
+      search(word) is true only if a complete stored word equals word; startsWith(prefix) is true
+      if any stored word begins with prefix.
+      Example: operations [Trie, insert, search, search, startsWith, insert, search], args [[],
+      ["apple"], ["apple"], ["app"], ["app"], ["app"], ["app"]] → [null, null, true, false, true,
+      null, true].
+    starterCode: |
+      function solution(operations, args) {
+        // Plan: build nodes as { children: Object.create(null), end: false }.
+        // For each operation: "Trie" push null; "insert" walk/create children
+        // for the word and set end = true on the final node, push null;
+        // "search" walk children and push the final node's end flag (or
+        // false if the path dies); "startsWith" push whether the path exists.
+        const out = [];
+        return out;
+      }
+    testCases:
+      - input:
+          - ['Trie', 'insert', 'search', 'search', 'startsWith', 'insert', 'search']
+          - [[], ['apple'], ['apple'], ['app'], ['app'], ['app'], ['app']]
+        expected: [null, null, true, false, true, null, true]
+      - input:
+          - ['Trie', 'search', 'startsWith']
+          - [[], ['x'], ['x']]
+        expected: [null, false, false]
+      - input:
+          - ['Trie', 'insert', 'search', 'startsWith', 'search']
+          - [[], ['app'], ['apple'], ['app'], ['app']]
+        expected: [null, null, false, true, true]
+  - title: 'Word Search II'
+    leetcodeId: 212
+    difficulty: 'hard'
+    prompt: |
+      Given an m×n board of single-character strings and a list of words, return all words from the
+      list present on the board. A word is present if its letters appear along a path of adjacent
+      cells (up/down/left/right), each cell used at most once per word. Multiple paths can spell the
+      same word — return each found word exactly once, in sorted order.
+      Build a trie of the words, then DFS the board: move letter by letter through the trie, pruning
+      a branch as soon as it stops matching any word, and record a word when its end node is reached
+      (then remove the end mark so it is not reported twice).
+      The signature is solution(board, words). Example: board
+      [["o","a","a","n"],["e","t","a","e"],["i","h","k","r"],["i","f","l","v"]], words
+      ["oath","pea","eat","rain"] → ["eat","oath"].
+    starterCode: |
+      function solution(board, words) {
+        // Plan: insert every word into a trie. Then for each cell, DFS: if
+        // the current letter has no trie child, stop; if the child is a word
+        // end, add the word and unmark it; recurse on unused neighbors (mark
+        // the cell visited, then restore it on the way back).
+        return [];
+      }
+    testCases:
+      - input:
+          - [['o', 'a', 'a', 'n'], ['e', 't', 'a', 'e'], ['i', 'h', 'k', 'r'], ['i', 'f', 'l', 'v']]
+          - ['oath', 'pea', 'eat', 'rain']
+        expected: ['eat', 'oath']
+      - input:
+          - [['a', 'b'], ['c', 'd']]
+          - ['abcb']
+        expected: []
+      - input: [[['a']], ['a']]
+        expected: ['a']
+      - input: [[['a', 'a']], ['a']]
+        expected: ['a']
+      - input:
+          - [['a', 'b'], ['c', 'd']]
+          - ['ab', 'abcd']
+        expected: ['ab']
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './18-tries.frames';
+
+<DsaVisualizer title="Two words sharing one spine" frames={frames} client:idle />
+
+## The one question this page answers
+
+A dictionary is easy to search: build a hash set and ask "is this word present?" in O(1). Harder
+question, asked by autocomplete, spellcheck, and Word Search II: _is this PREFIX still alive, and
+which words share it?_ Hash sets answer strings, never prefixes. The trie's question is sharper:
+_can a tree where each node is one character make prefix answers as cheap as whole-word answers?_
+Yes — both cost O(L).
+
+## Start with an analogy
+
+A phone keypad with letters spelled out by walking. To enter "cat" you press C, then A, then T —
+each press moves you one level deeper. The keys form a branching tree: press A at the top and every
+word beginning with A hangs from that branch; words like "cat" and "care" march side by side down
+the shared "ca" stairs before diverging.
+
+The trie is that keypad made of nodes: each node is one letter, each child is "the letter that can
+come next", and a stored word is any node marked "this is a valid final destination".
+
+## The node is two facts
+
+A trie node holds only:
+
+- **children** — the letters that have been seen next after this one; a map from character to node
+  is the typical in-memory choice.
+- **word-end flag** — a single boolean: a complete stored word ends right here.
+
+The node does not store the whole prefix because the path to it already spells it. That is the
+memory trick — the position in the tree IS the string.
+
+## Insert: walk, create, mark
+
+To insert a word, walk from the root, following the child named by each letter:
+
+- child exists → descend into it,
+- child missing → create it, then descend.
+
+After the last letter, set the word-end flag on the node reached. The shared prefix effect: "cat"
+and "care" build the root → c → a spine once. Only the differing final letters branch.
+
+## Search vs startsWith — the one-flag difference
+
+- `search(word)`: walk the letters; if any child is missing, return false; at the end, return the
+  WORD-END flag of the node. "car" in a trie holding only "care" has a node — but no end mark — so
+  search says false.
+- `startsWith(prefix)`: walk the same way and return true if the path survives to the end — the flag
+  is irrelevant. Every stored word makes all of its prefixes pass.
+
+That one flag is the entire difference, and it is the trie's signature trick.
+
+## Word Search II: the trie in the wild
+
+Searching a board for many words at once is backtracking plus the trie:
+
+1. Insert all words into one trie once.
+2. From every board cell, DFS the neighbors, descending through the trie.
+3. The moment a letter has no child in the trie, the branch dies — no word can continue this way.
+4. When a DFS lands on a word-end node, record the word and unmark the flag so the same word is
+   never reported again, even if a second path can also spell it.
+
+Without a trie, "does any of these words start here?" is a scan of the word list at every cell. With
+it, the check is one child look-up — the tree collapses the whole vocabulary.
+
+## What this is NOT
+
+| Misconception                                    | Truth                                                                                              |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| "A trie is a sorted list of words"               | It is a tree of single characters built from shared prefixes; no actual word exists as a unit.     |
+| "search and startsWith give the same answer"     | Same walk, different final test — the word-end flag separates a complete word from a live prefix.  |
+| "A trie is faster than a hash set at everything" | For exact-word look-ups they are comparable; the trie wins at PREFIX questions and pays in memory. |
+| "Insert needs to create a node per letter"       | Only for letters the walk finds missing; shared prefix nodes are reused and just passed through.   |
+| "Word Search II is about fast lookups"           | It is about pruning: the trie kills every board prefix that matches no stored word, step by step.  |
+
+## Why this matters for the rest of the trip
+
+The trie pairs the tree intuition of the binary-tree days with the "string as a path" idea that
+recursion already rewarded. It is the backbone of autocomplete and spellcheck, and the pruning
+discipline here — stop the moment the path stops promising — is exactly the backtracking discipline
+you sharpened in the backtracking day, now wearing a prefix tree. Master "walk the path, mind the
+end flag" and prefix problems stop being exotic.
+
+Solve the two problems above: the first turns the trie vocabulary into method calls; the second
+makes the trie prune a board search one letter at a time.

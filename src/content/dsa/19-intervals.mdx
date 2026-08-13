@@ -1,0 +1,271 @@
+---
+order: 19
+title: 'Intervals: sweeping sorted ranges'
+coreConcept:
+  'An interval is a half-open slice of time; most interval problems become two-sentence solutions
+  once you sort the ranges by start and sweep them left to right, holding one "current" window and
+  folding every interval that overlaps it into a single merged range.'
+docSource: 'https://www.geeksforgeeks.org/merging-intervals/'
+docTitle: 'Merging Intervals — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Decode an interval [a, b] as "from a up to b" and test overlap as one comparison'
+  - 'Merge intervals: sort by start, then fold overlapping neighbors into one window with the max
+    end'
+  - 'Prove Meeting Rooms with the same sort-and-sweep, checking positive overlap between
+    consecutive entries'
+  - 'Handle the three overlap shapes — true overlap, containment, and touching ends — consistently'
+  - 'Know the sweep’s pricing: sorting dominates, at O(n log n)'
+quiz:
+  - question: 'What is the very first step of nearly every interval algorithm?'
+    options:
+      - 'Sorting the intervals by their start times'
+      - 'Computing the average end time'
+      - 'Reversing every interval'
+      - 'Removing the smallest interval'
+    answerIndex: 0
+    explanation:
+      'When intervals are ordered by start, the "current window" trick works: you only ever need to
+      compare against the single live window, because every not-yet-seen interval starts at or after
+      the one in hand. Any other order forces you to look back and forth, which is exactly the
+      O(n²) confusion sorting eliminates. Averages, reversals, and deletions are not part of the
+      contract.'
+  - question: 'Two intervals [a, b] and [c, d] with a ≤ c overlap iff…'
+    options:
+      - 'c ≤ b'
+      - 'c ≥ d'
+      - 'b ≥ d'
+      - 'a + c equals b + d'
+    answerIndex: 0
+    explanation:
+      'The first interval runs to b; the second starts at c. They share time exactly when the second
+      begins before the first ends — c ≤ b. Once that holds, the merged window runs from a to the
+      larger of b and d. Testing c ≥ d or b ≥ d flips the direction of the overlap and would accept
+      disjoint pairs; the arithmetic equality is meaningless here.'
+  - question: 'Merging touches the interval [a, b] with [b, c] — where does the merged range
+    end?'
+    options:
+      - 'At b, keeping them separate'
+      - 'At c — the ranges meet at the shared boundary b, so together they cover [a, c] without any
+        gap'
+      - 'At b + c'
+      - 'At a'
+    answerIndex: 1
+    explanation:
+      'The end of one equals the start of the next, so the union is the single seamless range [a, c]:
+      there is no minute that belongs to neither. The merge rule is max of the ends, so c wins. Only
+      a strict gap — the next start strictly past the current end — genuinely separates two ranges;
+      the touching boundary never causes a split.'
+  - question: 'An interval completely inside the current window — say [2, 6] already open and
+    [3, 4] arrives — should be…'
+    options:
+      - 'Skipped, because it overlaps by containment: the current window [2, 6] already covers it, so
+        no work happens and the window stays [2, 6]'
+      - 'Skipped only if it is shorter than a minute'
+      - 'Split into two pieces'
+      - 'Used to shrink the window to [3, 4]'
+    answerIndex: 0
+    explanation:
+      'The window keeps the maximum end seen so far; the incoming end 4 does not exceed 6, so the
+      overlap check passes and the window is simply left where it is. Nothing is split, nothing
+      shrinks — a merge never reduces a range, it only extends or passes through. The length of the
+      interval is irrelevant to the rule.'
+  - question: 'In Meeting Rooms, after sorting, when is it impossible to attend everything?'
+    options:
+      - 'When a meeting starts before the previous meeting ends — their ranges overlap by at least
+        one unit, so one room cannot host both'
+      - 'When two meetings have the same start time'
+      - 'When a meeting is longer than 60 minutes'
+      - 'When the first meeting does not start at 0'
+    answerIndex: 0
+    explanation:
+      'One room can hold a meeting that starts exactly when the previous one ends (no overlap), which
+      is why the check is strict: next.start < current.end means the two crowd each other, and the
+      answer is false. Equal start times obviously overlap too — but that is a consequence of the
+      same positive-overlap test, not a separate rule, and neither meeting length nor the day’s
+      origin has any bearing.'
+  - question: 'Why is one left-to-right sweep enough instead of comparing every pair?'
+    options:
+      - 'Because every interval is the same length'
+      - 'Sorting by start means any future interval begins at or after everything examined, so a
+        single live window captures all overlap information — pair-by-pair comparison is redundant'
+      - 'Because intervals cannot ever overlap'
+      - 'Because the sweep runs in parallel'
+    answerIndex: 1
+    explanation:
+      'Once sorted, the sweep maintains one window that has already swallowed every overlapping
+      interval behind it; an interval ahead can only relate to that window, never to one already
+      closed. That drops pairwise comparison from O(n²) to O(n) after an O(n log n) sort. The equal
+      length and never-overlap claims are false, and the sweep is inherently sequential.'
+  - question: 'The overall time of a merge-intervals solution is…'
+    options:
+      - 'O(n) because the sweep is linear'
+      - 'O(n log n) — the sweep itself is O(n), but sorting the intervals first dominates'
+      - 'O(n²) in every case'
+      - 'O(log n)'
+    answerIndex: 1
+    explanation:
+      'The sweep visits each interval once, but its precondition — every start comes before every
+      later start — is what the sort buys, and comparison sort costs O(n log n). So the total is
+      O(n log n). Claiming O(n) forgets the sort that makes the sweep possible, O(n²) forgets the
+      sort removes that barrier, and O(log n) describes a single search, not a whole sweep.'
+problems:
+  - title: 'Merge Intervals'
+    leetcodeId: 56
+    difficulty: 'medium'
+    prompt: |
+      Given an array of intervals, where each interval is the pair [start, end] (start ≤ end),
+      return an array of the merged non-overlapping intervals that cover exactly the same ranges.
+      Sort by start, then sweep: keep a current window; whenever the next interval starts at or
+      before the current end, extend the window with the maximum end; otherwise close the window,
+      push it, and open the next. The signature is solution(intervals).
+      Example: [[1,3],[2,6],[8,10],[15,18]] → [[1,6],[8,10],[15,18]].
+    starterCode: |
+      function solution(intervals) {
+        // Plan: sort a copy by start. Walk it; merge into a result array by
+        // tracking the current window [start, end]. Overlap (next start <=
+        // end) extends end = max(end, next end); otherwise push the window
+        // and start a new one. Empty input -> [].
+        return [];
+      }
+    testCases:
+      - input:
+          - [
+              [1, 3],
+              [2, 6],
+              [8, 10],
+              [15, 18],
+            ]
+        expected:
+          - [1, 6]
+          - [8, 10]
+          - [15, 18]
+      - input: [[[1, 4], [4, 5]]]
+        expected: [[1, 5]]
+      - input: [[[1, 4], [2, 3]]]
+        expected: [[1, 4]]
+      - input: [[[5, 7], [1, 3], [4, 6]]]
+        expected:
+          - [1, 3]
+          - [4, 7]
+      - input: [[]]
+        expected: []
+      - input: [[[1, 1]]]
+        expected: [[1, 1]]
+      - input: [[[3, 3], [1, 1]]]
+        expected:
+          - [1, 1]
+          - [3, 3]
+  - title: 'Meeting Rooms'
+    leetcodeId: 252
+    difficulty: 'easy'
+    prompt: |
+      Given an array of meeting time intervals, each interval the pair [start, end] (start < end),
+      determine if a person could attend all meetings: true when no two meetings overlap anywhere in
+      time. Overlap means a meeting starts while another is still running; a meeting ending exactly
+      when another starts is fine. Sort by start and check consecutive pairs: if any meeting’s
+      start is before the previous meeting’s end, return false. The signature is
+      solution(intervals).
+      Example: [[0,30],[5,10],[15,20]] → false; [[7,10],[2,4]] → true.
+    starterCode: |
+      function solution(intervals) {
+        // Plan: sort a copy by start. For each consecutive pair, if the next
+        // meeting starts STRICTLY before the previous one ends, the two
+        // overlap and the answer is false. Equal boundaries (end == next
+        // start) are allowed. Empty or single-meeting lists are true.
+        return false;
+      }
+    testCases:
+      - input: [[[0, 30], [5, 10], [15, 20]]]
+        expected: false
+      - input: [[[7, 10], [2, 4]]]
+        expected: true
+      - input: [[[5, 8], [9, 15]]]
+        expected: true
+      - input: [[[1, 5], [5, 10]]]
+        expected: true
+      - input: [[]]
+        expected: true
+      - input: [[[2, 4], [1, 3]]]
+        expected: false
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './19-intervals.frames';
+
+<DsaVisualizer title="Folding overlapping ranges" frames={frames} client:idle />
+
+## The one question this page answers
+
+Intervals are time with beginning and end — and the trap is that each interval can relate to every
+other one, begging an O(n²) comparison. The page answers one question: _is there an ordering that
+makes comparisons local?_ Sorting by start gives the yes: with every later start at or after the one
+in hand, a single sweep window captures all the overlap that matters, and merging takes one pass.
+
+## Start with an analogy
+
+A wall of sticky notes, each a colored stripe with a start tick and an end tick. To merge them you
+do not hold the whole wall in your head: line the notes up left to right by their left edge, then
+slide a single ruler across. Whenever the next note starts while the ruler is still over the current
+stripe, extend the ruler to cover both ends. When the next note starts past the ruler’s edge, the
+stripe is complete — pin it to the board and start a new one.
+
+The ruler is the **current window**; lining up is **sorting by start**; sliding across is **the
+sweep**.
+
+## Overlap, decoded
+
+For two intervals where the second starts at or after the first — which sorting guarantees — the
+whole relationship is one comparison: `next.start ≤ current.end`. When it holds, they overlap (or
+touch) and merge into `[current.start, max(current.end, next.end)]`. When
+`next.start > current.end`, there is a genuine gap and no merge. Containment falls out of the same
+rule: an interval inside the window still satisfies the test, and `max` simply keeps the window
+unchanged.
+
+## Merging in one pass
+
+With sorting in hand, the algorithm is a straight left-to-right fold:
+
+1. Sort the intervals by start time.
+2. Open a window on the first interval.
+3. For each next interval: if `next.start ≤ window.end`, extend `window.end` to the larger of the
+   two ends; otherwise push the finished window into the result and open a new one on `next`.
+4. Push the last window.
+
+Cost: O(n log n) for the sort, then O(n) for a sweep that touches each interval a constant number of
+times. Every merge problem settles on the same spine; only the "what to print at each event"
+changes.
+
+## Meeting Rooms: the same sweep, a yes/no answer
+
+Meeting Rooms asks whether a single person could attend every meeting — whether any two intervals
+overlap. Same skeleton:
+
+1. Sort by start.
+2. For each consecutive pair, if `next.start < current.end`, a meeting begins while an earlier one
+   is still running — return false.
+
+The strict `<` encodes the boundary rule: a meeting ending exactly when the next starts uses no
+shared time, so equal endpoints are legal. Everything else — "does a room exist", "fewest rooms",
+"how many overlaps at the busiest minute" — is the same sort-and-sweep wearing different hats.
+
+## What this is NOT
+
+| Misconception                               | Truth                                                                                                    |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| "Interval problems need pairwise checks"    | Sorting makes one sweep window sufficient; pairwise comparison is redundant O(n²) legwork.               |
+| "Touching ends count as overlap"            | [a, b] then [b, c] are mergeable into [a, c], and a person can attend both meeting rooms back to back.   |
+| "A contained interval shrinks the window"   | A merge only ever extends or keeps; the max end is the only number that moves.                           |
+| "The sweep itself makes the algorithm fast" | The linear sweep is the dessert; the O(n log n) sort is the meal that makes the victory possible.        |
+| "Meeting Rooms and Merge Intervals differ"  | They are one algorithm: same sort, same consecutive comparison, different output (bool vs merged array). |
+
+## Why this matters for the rest of the trip
+
+Intervals are the shape of time, and time-shaped problems — calendar overlap, meeting rooms, load in
+a CPU scheduler, coverage — nearly all reduce to sort + sweep. The habit of _ordering the data until
+comparisons become local_ is the same instinct the greedy day sharpened and the same pre-step binary
+search demands: make the world monotone, then one glance answers the question. Master the ascending
+start and the single window, and the interval family stops being a list of puzzles.
+
+Solve the two problems above. Merge Intervals is the fold; Meeting Rooms is the same fold asked as a
+question — make sure you can state when the two stop being the same program.

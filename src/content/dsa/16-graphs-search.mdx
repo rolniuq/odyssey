@@ -1,0 +1,311 @@
+---
+order: 16
+title: 'Graphs: searching with BFS and DFS'
+coreConcept:
+  'Searching a graph is a race between two policies for which node to look at next: breadth-first
+  search drains its neighbors from a queue (oldest first, exploring in layers of distance), while
+  depth-first search throws itself down one path with a stack until it bottoms out. Both need a
+  visited set to stay finite, and one question — queue or stack — decides which answer you get.'
+docSource: 'https://www.geeksforgeeks.org/breadth-first-search-or-bfs-for-a-graph/'
+docTitle: 'Breadth First Search or BFS for a Graph — GeeksforGeeks'
+difficulty: 'advanced'
+objectives:
+  - 'Decide what to mark visited and when, so neither BFS nor DFS ever revisits a node'
+  - 'Run BFS from a node using a queue (FIFO) and state the layer-by-layer order it produces'
+  - 'Run DFS using a stack (or recursion) and use a back edge to detect a cycle'
+  - 'Apply the same machinery to topological sort (Course Schedule) and to cloning a graph'
+quiz:
+  - question: 'One data-structure swap turns BFS into DFS. Which swap is it?'
+    options:
+      - 'Swap the queue for a stack: BFS explores oldest-first, DFS explores the most recently
+        pushed path first (LIFO)'
+      - 'Swap the visited set for an array of counters'
+      - 'Swap directed edges for undirected ones'
+      - 'Swap a recursive loop for a while loop'
+    answerIndex: 0
+    explanation:
+      'Both searches differ only in which frontier node is examined next. A queue forces "oldest
+      first" — a gentle layer-by-layer spread; a stack forces "newest first" — a dive straight down
+      one branch. Same neighbors, same visited check, different policy, different traversal order.
+      The visited discipline and edge direction are unrelated to that choice.'
+  - question: 'Why must a node receive its visited mark when it is DISCOVERED, not when it is popped
+    off the frontier?'
+    options:
+      - 'Because the discovered mark must be stored in a hash table'
+      - 'A node can sit in the frontier twice if two neighbors both discover it before the first is
+        expanded — marking at discovery keeps each node in the frontier exactly once'
+      - 'Because popping happens too fast to record anything'
+      - 'Because unmarked nodes are cheaper to store'
+    answerIndex: 1
+    explanation:
+      'Suppose 0 neighbors 1 and 2, and 2 also neighbors 1. Expanding 0 queues 1 and 2; if 1 were
+      only marked when popped, expanding 2 would queue 1 a second time. Marking at discovery means
+      the second touch is detected and ignored before it ever enters the frontier. That single rule
+      keeps BFS and DFS linear in V + E.'
+  - question: 'In Kahn’s algorithm for Course Schedule, what does a course with indegree 0 represent
+    at that moment?'
+    options:
+      - 'A course that could never be taken'
+      - 'A course whose prerequisites are already satisfied — nothing still blocks it, so it can be
+        scheduled immediately'
+      - 'A course that has already been dropped'
+      - 'A prerequisite of every other course'
+    answerIndex: 1
+    explanation:
+      'Indegree counts the not-yet-scheduled prerequisites feeding a course. When it hits 0, nothing
+      stands in the way, so the course is safe to take; removing it decrements the indegrees of the
+      courses that depend on it, which may unlock more. If the queue ever empties while courses
+      remain, at least one indegree never reached 0 — a cycle that blocks the schedule, so the
+      answer is false.'
+  - question: 'A DFS that re-encounters a node still sitting on the recursion stack has found…'
+    options:
+      - 'a memory leak'
+      - 'a back edge — a cycle. The current path looped back into itself, so the graph is not
+        acyclic'
+      - 'an undirected edge copied twice'
+      - 'the shortest path to that node'
+    answerIndex: 1
+    explanation:
+      'The recursion stack holds exactly the path currently being explored. Meeting an ancestor still
+      on it means the exploration looped around to itself, which is the definition of a directed
+      cycle (nodes visited but already finished are fine — that is a forward or cross edge, not a
+      cycle). This is the DFS route to Course Schedule: finish every node without ever closing a
+      cycle.'
+  - question: 'On an unweighted graph, why does BFS find a shortest path (fewest edges) where DFS
+    does not?'
+    options:
+      - 'BFS is faster because it uses a queue'
+      - 'BFS drains the frontier in distance layers — every node at distance k is fully explored
+        before any node at distance k+1, so the first time the target is reached it is reached by
+        the shortest route possible'
+      - 'DFS explores in layers as well, just slower'
+      - 'BFS checks every edge twice'
+    answerIndex: 1
+    explanation:
+      'The FIFO queue guarantees layer order: everything one step from the start is processed before
+      anything two steps away, and so on. DFS dives arbitrarily deep down one path first, so it can
+      stumble onto the target the long way around. On weighted graphs even BFS loses this guarantee
+      and you need a priority-queue search instead.'
+  - question: 'When cloning a graph, why must the visited map store the FINISHED clone of each node,
+    not just a true/false flag?'
+    options:
+      - 'A boolean is cheaper, so it is always preferred'
+      - 'Real graphs share nodes and even contain cycles — when a neighbor points at an already-cloned
+        node, the map must hand back that exact clone so the copy keeps the same shape instead of
+        duplicating it'
+      - 'Because clones must be sorted by value'
+      - 'Because adjacency lists are faster than maps'
+    answerIndex: 1
+    explanation:
+      'Cloning is pointer-preserving, not value-producing: the copy must mirror the original’s
+      references. A boolean only records "visited"; it cannot answer "give me the clone of this
+      node". The cyclic version of Clone Graph is exactly the case that forces this — without the
+      stored clone, a back edge would recreate a node already copied and the cycle would never close.'
+  - question: 'Reachability (Is there any path from A to B?) can be answered by either search — the
+    difference is…'
+    options:
+      - 'DFS is faster in every case'
+      - 'BFS also reports the cheapest (fewest-edge) route when one exists; DFS reports merely that a
+        path exists and, with a stack, does not promise any particular one'
+      - 'DFS cannot be written iteratively'
+      - 'Only BFS needs a visited set'
+    answerIndex: 1
+    explanation:
+      'Both searches fan out over the same reachable component, so both decide reachability. The
+      extra promise belongs to BFS: because it processes by distance, the first hit on B is along a
+      shortest path. DFS is the specialist for "explore every option" and cycle/backtracking work;
+      neither omits its visited set.'
+problems:
+  - title: 'Course Schedule'
+    leetcodeId: 207
+    difficulty: 'medium'
+    prompt: |
+      There are numCourses courses labeled 0 to numCourses - 1. You are given an array prerequisites
+      where prerequisites[i] = [a, b] means course a depends on course b (take b before a). Return
+      true if you can finish every course (no cycle in the dependency graph), else false.
+      Do the topological check with Kahn's algorithm: count indegrees, repeatedly dequeue a course
+      with indegree 0, and decrement its dependents.
+      The signature is solution(numCourses, prerequisites).
+      Example: numCourses 2, prerequisites [[1, 0]] → true; numCourses 2, [[1, 0], [0, 1]] → false.
+    starterCode: |
+      function solution(numCourses, prerequisites) {
+        // Plan: build adjacency (course -> dependents) and an indegree count
+        // per course. Queue every course with indegree 0. Repeatedly dequeue,
+        // decrement dependents, and enqueue any whose indegree falls to 0.
+        // If the number of processed courses == numCourses, the graph is
+        // acyclic and every course can be taken.
+        return false;
+      }
+    testCases:
+      - input: [2, [[1, 0]]]
+        expected: true
+      - input: [2, [[1, 0], [0, 1]]]
+        expected: false
+      - input: [3, [[1, 0], [2, 1], [0, 2]]]
+        expected: false
+      - input: [4, [[1, 0], [2, 1], [3, 2]]]
+        expected: true
+      - input: [1, []]
+        expected: true
+      - input: [3, []]
+        expected: true
+      - input: [4, [[1, 0], [2, 0], [3, 1], [3, 2]]]
+        expected: true
+  - title: 'Clone Graph'
+    leetcodeId: 133
+    difficulty: 'medium'
+    prompt: |
+      Given a reference to a node of a connected undirected graph, return a deep copy of the graph.
+      Each node is a plain object { val, neighbors } where val is an integer and neighbors is an array
+      of node objects. Return the cloned node (the object corresponding to the input's node), grown
+      with the same val and the same neighbor structure. A graph with a cycle would need a visited
+      map so each node is cloned exactly once — these sample graphs are acyclic, but write the
+      general solution anyway.
+      The signature is solution(node).
+      Example: node { val: 1, neighbors: [] } → { val: 1, neighbors: [] }.
+    starterCode: |
+      function solution(node) {
+        // Plan: a Map from original node -> its clone is the safety net. If
+        // the node is already cloned, return the existing clone. Otherwise
+        // create its clone, store it, then clone every neighbor (DFS or BFS)
+        // and attach the results to the clone's neighbors array.
+        return node;
+      }
+    testCases:
+      - input:
+          - { val: 1, neighbors: [] }
+        expected: { val: 1, neighbors: [] }
+      - input:
+          - { val: 1, neighbors: [{ val: 2, neighbors: [] }] }
+        expected: { val: 1, neighbors: [{ val: 2, neighbors: [] }] }
+      - input:
+          - {
+              val: 1,
+              neighbors: [
+                { val: 2, neighbors: [] },
+                { val: 3, neighbors: [] },
+              ],
+            }
+        expected:
+          {
+            val: 1,
+            neighbors: [
+              { val: 2, neighbors: [] },
+              { val: 3, neighbors: [] },
+            ],
+          }
+      - input:
+          - {
+              val: 1,
+              neighbors: [
+                { val: 2, neighbors: [{ val: 4, neighbors: [] }] },
+                { val: 3, neighbors: [{ val: 4, neighbors: [] }] },
+              ],
+            }
+        expected:
+          {
+            val: 1,
+            neighbors: [
+              { val: 2, neighbors: [{ val: 4, neighbors: [] }] },
+              { val: 3, neighbors: [{ val: 4, neighbors: [] }] },
+            ],
+          }
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './16-graphs-search.frames';
+
+<DsaVisualizer title="One graph, two search policies" frames={frames} client:idle />
+
+## The one question this page answers
+
+A graph can be explored in a brute-force diagonal order: wander without a plan and you loop forever,
+touch the same nodes twice, and still answer nothing. The page answers a single question — _in what
+order do I look at the frontier?_ — and shows that two famous answers to it, a queue (BFS) and a
+stack (DFS), share all their hygiene (mark visited, skip repeats) and differ only in which node each
+turns to next.
+
+## Start with an analogy
+
+You are inside a building and must search it. Two policies:
+
+- **Floor by floor.** Check every room on the ground floor, then the entire first floor, then the
+  second. You may walk a lot in the early rounds, but you meet the fire exit in the fewest doors
+  possible — and you always know you have seen everything within a certain walking distance.
+- **One stairwell at a time.** Trust the first staircase, go as deep as you can, come all the way
+  back, then try the next staircase. You find the hidden cash sooner, but you can sneak past the
+  fire exit steps away.
+
+The queue is the "floor by floor" schedule: rooms discovered first are explored first. The stack is
+the "one stairwell at a time" schedule: the most recently discovered room is explored first. Neither
+is wrong; the building just decides what you find and in what order.
+
+## The shared spine of every graph search
+
+Whatever the policy, both searches run the same loop:
+
+1. Hold every discovered-but-unexplored node in a **frontier**.
+2. Take one node off the frontier, and look at its **neighbors**.
+3. Any neighbor never seen before: **mark it visited** and add it to the frontier.
+
+The visited mark at _discovery_ — step 3 — is the hygiene that keeps the loop finite. If you marked
+on arrival instead, a node with two frontiers parents would be queued twice. State the rule: _race
+to the mark_.
+
+### The queue: BFS
+
+Use a **queue** (FIFO) as the frontier. Nodes discovered first are explored first, so the frontier
+always contains an entire "wave" at one distance, then the next. Everyone at distance 1 is explored
+before anyone at distance 2 — that layering is what makes BFS finds fewest-edge paths and what makes
+it the natural tool for "closest / how quickly".
+
+### The stack: DFS
+
+Use a **stack** (LIFO), or recursion. The most recently discovered node is explored next, so the
+search plunges down a single path until it bottoms out, then unwinds and tries the next branch. DFS
+is the tool for "explore every possibility" and for cycle detection: a path that re-enters a node
+still on the recursion stack has closed a loop, a **back edge**.
+
+## Topological search: might be a special mark
+
+Course Schedule's prerequisites form a directed graph. A **topological order** lists courses so
+every course appears after its prerequisites — such an order exists exactly when the graph is
+acyclic. Kahn's algorithm is BFS's twin for this:
+
+1. Count every course's **indegree** (how many prerequisites still block it).
+2. Queue every course with indegree 0 — nothing blocks it, so it is schedulable now.
+3. Dequeue one, and decrement the indegrees of the courses that need it.
+4. A course whose indegree falls to 0 joins the queue.
+
+If the count of scheduled courses falls short of `numCourses`, a cycle keeps every remaining course
+blocked forever, and the answer is `false`.
+
+## Cloning: the visited set becomes a map
+
+Clone Graph asks for a deep copy of a node graph. The twist: the copy must mirror the original's
+_references_, not just its values. A `visited` boolean is a boolean; a **map from original node to
+its clone** is a memory. When a neighbor points at a node already cloned, the map hands back the
+existing clone — shared nodes and cycles in the original become shared nodes and cycles in the copy.
+Recursion without that map on a cyclic graph never terminates; with it, each node is cloned exactly
+once and the shape is preserved.
+
+## What this is NOT
+
+| Misconception                                | Truth                                                                                                        |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| "DFS and BFS are different algorithms"       | The only difference is the frontier policy — queue vs stack. The visited discipline is byte-for-byte shared. |
+| "Visited marks are optional if I am careful" | Without them a node with two paths in gets queued twice and, on cyclic graphs, the search never ends.        |
+| "BFS finds shortest paths in any graph"      | Only for fewest-_edges_ paths on unweighted graphs; with weighted edges the layering guarantee breaks.       |
+| "DFS cannot detect cycles"                   | The recursion stack version detects them precisely — a back edge into the active path is a cycle.            |
+| "Cloning just copies values"                 | It must preserve references through a map, or shared/cyclic structure breaks the clone.                      |
+
+## Why this matters for the rest of the trip
+
+Every graph problem you will meet — shortest paths, connected components, topological order, even
+puzzle solving — is a search with a policy bolted on. Longest-line BFS gives you levels and shortest
+paths; DFS with timing marks gives you components, cycles, and topological orders; both give every
+later algorithm its first visit to a node. Nail the "_mark on discovery, then the queue/stack
+decides the tale_" habit now and the harder graph days become variations, not rediscoveries.
+
+Solve the two problems above. In Course Schedule, watch Kahn's queue alone decide acyclicity; in
+Clone Graph, watch the visited map decide the shape of the copy.
