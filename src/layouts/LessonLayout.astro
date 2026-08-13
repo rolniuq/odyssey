@@ -75,7 +75,7 @@ const difficultyBadge: Record<string, string> = {
 
   <!-- Quiz island -->
   <section class="mt-12">
-    <Quiz questions={lesson.data.quiz} />
+    <Quiz questions={lesson.data.quiz} client:idle />
   </section>
 
   <hr class="my-10 border-slate-200" />

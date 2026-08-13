@@ -224,7 +224,7 @@ still waiting, ordered so temperatures decrease toward the top. For each day `i`
 - Push `i`.
 
 Days left on the stack at the end never find a warmer day: `0`. The visualizer above runs the whole
-walk on `[73,74,75,71,69,72,76,73]` — watch day 6 (76°) answer three stale days at once, each with a
+walk on `[73,74,75,71,69,72,76,73]` — watch day 6 (76°) answer two stale days at once, each with a
 different wait.
 
 **Cost:** every index is pushed once and popped at most once, so the pops are O(n) total — the

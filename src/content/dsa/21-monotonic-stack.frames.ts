@@ -192,7 +192,7 @@ export const frames: VisualizerFrame[] = [
       },
     ],
     caption:
-      'Day 6 is 76° — warmer than the 72° on top (answer[5] = 6 − 5 = 1) and the 75° beneath it (answer[2] = 6 − 2 = 4). Day 2 waited four days for 76°. Then push day 6. One new day answered three stale ones.',
+      'Day 6 is 76° — warmer than the 72° on top (answer[5] = 6 − 5 = 1) and the 75° beneath it (answer[2] = 6 − 2 = 4). Day 2 waited four days for 76°. Then push day 6. One new day answered two stale ones.',
   },
   {
     rows: [
