@@ -1,0 +1,32 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import DsaLessonLayout from '../../../layouts/DsaLessonLayout.astro';
+
+export async function getStaticPaths() {
+  const days = (await getCollection('dsa')).sort((a, b) => a.data.order - b.data.order);
+  return days.map((day) => {
+    const idx = days.findIndex((d) => d.id === day.id);
+    return {
+      params: { slug: day.id },
+      props: {
+        lesson: day,
+        prev: idx > 0 ? days[idx - 1] : undefined,
+        next: idx < days.length - 1 ? days[idx + 1] : undefined,
+      },
+    };
+  });
+}
+
+interface Props {
+  lesson: CollectionEntry<'dsa'>;
+  prev?: CollectionEntry<'dsa'>;
+  next?: CollectionEntry<'dsa'>;
+}
+
+const { lesson, prev, next } = Astro.props;
+const { Content } = await render(lesson);
+---
+
+<DsaLessonLayout lesson={lesson} prev={prev} next={next}>
+  <Content />
+</DsaLessonLayout>
