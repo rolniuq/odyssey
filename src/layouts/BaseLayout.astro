@@ -8,40 +8,60 @@ interface Props {
 }
 
 const { title, description, pill } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const path = Astro.url.pathname;
 const nav = [
-  { href: '/lessons', label: 'Lessons' },
-  { href: '/dsa', label: 'DSA' },
+  { href: base, label: 'Home' },
+  { href: `${base}lessons`, label: 'Lessons' },
+  { href: `${base}dsa`, label: 'DSA' },
 ];
+const isActive = (href: string) =>
+  href === base ? path === href || path === href.slice(0, -1) : path.startsWith(href);
 ---
 
 <!doctype html>
 <html lang="en" class="scroll-smooth">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="icon" href={`${base}favicon.ico`} />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
     <title>{title}</title>
   </head>
-  <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
-    <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
+  <body
+    class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100"
+  >
+    <header
+      class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/75 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/75"
+    >
       <div class="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-        <a href="/" class="flex items-center gap-2 text-base font-semibold tracking-tight">
+        <a
+          href={base}
+          class="group flex items-center gap-2.5 text-base font-semibold tracking-tight"
+        >
           <span
-            class="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-sm font-bold text-white"
+            class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white shadow-sm shadow-indigo-500/25 transition group-hover:shadow-indigo-500/40"
             >Od</span
           >
-          <span>OdysseyDB</span>
-          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500"
+          <span class="hidden sm:inline">OdysseyDB</span>
+          <span
+            class="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300"
             >{pill ?? 'PostgreSQL'}</span
           >
         </a>
-        <nav class="flex items-center gap-4 text-sm font-medium text-slate-600">
+        <nav class="flex items-center gap-5 text-sm font-medium">
           {
             nav.map((item) => (
-              <a href={item.href} class="hover:text-slate-900">
+              <a
+                href={item.href}
+                class={`transition ${
+                  isActive(item.href)
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
                 {item.label}
               </a>
             ))
@@ -50,17 +70,19 @@ const nav = [
       </div>
     </header>
 
-    <main class="mx-auto max-w-4xl px-4 py-8">
+    <main class="mx-auto max-w-4xl px-4 py-10">
       <slot />
     </main>
 
-    <footer class="border-t border-slate-200 py-8">
-      <div class="mx-auto flex max-w-4xl flex-col gap-2 px-4 text-sm text-slate-500">
+    <footer class="border-t border-slate-200 py-10 dark:border-slate-800">
+      <div
+        class="mx-auto flex max-w-4xl flex-col gap-2 px-4 text-sm text-slate-500 dark:text-slate-400"
+      >
         <p>
           Learning by teaching: each page is one idea, explained in my own words (Feynman technique)
           and proved with a quiz.
         </p>
-        <p class="text-xs text-slate-400">
+        <p class="text-xs text-slate-400 dark:text-slate-500">
           Content derived from the official PostgreSQL documentation. Not affiliated with the
           PostgreSQL project.
         </p>

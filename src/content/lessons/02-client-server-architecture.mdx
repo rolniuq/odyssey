@@ -1,0 +1,158 @@
+---
+{
+  'order': 2,
+  'title': 'PostgreSQL is a Client/Server System',
+  'coreConcept':
+    'PostgreSQL operates as a client/server system where a background server process manages the
+    data and communicates with separate client applications over a network.',
+  'docSource': 'https://www.postgresql.org/docs/current/tutorial-arch.html',
+  'docTitle': 'Architectural Fundamentals',
+  'difficulty': 'beginner',
+  'objectives':
+    [
+      'Distinguish between the PostgreSQL client and the PostgreSQL server',
+      'Explain how the server manages multiple client connections simultaneously',
+      'Identify the security and operational benefits of a client/server database architecture',
+    ],
+  'quiz':
+    [
+      {
+        'question':
+          'In the PostgreSQL client/server model, what is the primary job of the server process?',
+        'options':
+          [
+            'To display the user interface and query results to the end-user',
+            'To directly manage the database files on disk and handle incoming client requests',
+            'To compile the application code written by developers',
+            "To connect the user's web browser directly to the physical hard drive",
+          ],
+        'answerIndex': 1,
+        'explanation':
+          "The server process (called 'postgres') is the sole gatekeeper of the database files. It
+          manages physical storage, handles transactions, and processes requests sent to it by
+          client applications.",
+      },
+      {
+        'question':
+          'How does a client application like pgAdmin or a Python script interact with a PostgreSQL
+          database?',
+        'options':
+          [
+            'It opens and edits the raw database files on the hard drive directly',
+            'It sends SQL commands over a network connection (or local socket) to the server process',
+            "It copies the entire database into the computer's RAM to run queries locally",
+            'It bypasses the server process and communicates directly with the operating system
+            kernel',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'Clients never touch the database files directly. Instead, they send SQL messages over a
+          network protocol to the server, which executes the work and returns the results.',
+      },
+      {
+        'question':
+          "Which of the following database engines is an example of an 'embedded' database rather
+          than a client/server database?",
+        'options': ['PostgreSQL', 'MySQL', 'SQLite', 'Oracle Database'],
+        'answerIndex': 2,
+        'explanation':
+          "SQLite is an embedded database. It runs inside your application's process and
+          reads/writes files directly. PostgreSQL, MySQL, and Oracle are client/server databases
+          that run as separate background services.",
+      },
+    ],
+}
+---
+
+Imagine you walk into a busy, high-end restaurant.
+
+You don't walk straight into the kitchen, grab a frying pan, and start cooking your own steak. If
+everyone did that, the kitchen would be a chaotic, dangerous mess. Instead, you sit at a table (the
+**client**) and give your order to a waiter. The waiter carries your request to the kitchen (the
+**server**). The kitchen staff, who have exclusive access to the pantry and stoves, prepare your
+meal and hand it back to the waiter, who delivers it to your table.
+
+PostgreSQL works exactly like this restaurant. It is a **client/server system**.
+
+{/* DIAGRAM: An interactive animation showing a Client app (like a laptop icon) sending a SQL query string over a network pipe to a Server (a database tower icon). Inside the Server, a master process spawns a worker process to read/write to a disk icon, then sends the result set back through the pipe to the Client. */}
+
+---
+
+### The Two Halves of the System
+
+To understand PostgreSQL, you must understand that it is not a single program running on your
+computer. It is two separate programs talking to each other:
+
+#### 1. The Server (The Kitchen)
+
+This is the core engine of PostgreSQL. On your computer or a remote cloud server, it runs silently
+in the background as a service (often called a _daemon_). The actual program file is named
+`postgres`.
+
+- **The Gatekeeper:** The server is the _only_ program allowed to touch the actual database files on
+  the hard drive.
+- **The Coordinator:** When the server starts up, a master process begins listening for incoming
+  connections on a specific port (by default, port `5432`).
+- **The Workers:** Every time a new client connects, the master server process spawns a brand-new
+  "worker" process (a backend process) dedicated solely to serving that specific client.
+
+#### 2. The Client (The Restaurant Table)
+
+This is any application that wants to access or change your data. Clients do not know how to read
+database files; they only know how to speak the PostgreSQL protocol.
+
+Examples of clients include:
+
+- **Command-line tools:** Like `psql`, where you type SQL commands directly.
+- **Graphical interfaces:** Like pgAdmin, DBeaver, or TablePlus.
+- **Your application code:** A web server written in Node.js, Python, or Go using a database driver
+  to fetch user accounts.
+
+---
+
+### How They Communicate
+
+Because the client and server are separate, they don't even have to be on the same computer.
+
+If you are developing locally, both the client (e.g., your code) and the server (PostgreSQL) run on
+your laptop. They talk to each other using a local loopback connection (often called `localhost`).
+
+In production, your server might live in an AWS data center in Virginia, while your client (a user's
+mobile app or your web server) might be running in a data center in Oregon. The client sends SQL
+queries across the internet, and the PostgreSQL server sends back the rows of data.
+
+---
+
+## What this is NOT
+
+It is easy to confuse client/server databases with other architectures. Here is how they compare:
+
+| Feature                 | Client/Server (PostgreSQL)                              | Embedded (SQLite)                                                 |
+| :---------------------- | :------------------------------------------------------ | :---------------------------------------------------------------- |
+| **Where the code runs** | In a separate background process (`postgres`).          | Directly inside your application's process.                       |
+| **File Access**         | Only the server process touches the physical files.     | Your application code reads/writes the database file directly.    |
+| **Concurrency**         | Highly optimized for hundreds of simultaneous users.    | Best for single-user scenarios (like mobile apps or local tools). |
+| **Network Capability**  | Native. Clients can connect from anywhere in the world. | None. The database file must be on the same machine as the app.   |
+
+---
+
+## The diagram matters
+
+Understanding this separation is not just academic; it unlocks how you troubleshoot and design
+systems.
+
+Because PostgreSQL is a client/server system:
+
+1.  **Security is simplified:** You don't have to give your web developers or your application code
+    direct access to your physical storage drives. You only give them a username and password to
+    talk to the _server process_.
+2.  **Scale is independent:** If your database gets slow because it's running out of memory, you can
+    upgrade the hardware of the database server without changing a single line of your application's
+    client code.
+3.  **Connections are resources:** Because the server spawns a new process for every client, you
+    cannot have infinite clients. If 10,000 apps try to talk to Postgres at once, the server will
+    run out of memory. This is why developers use "connection pools" to share a limited number of
+    server connections among many clients.
+
+Now that you know how the client and server talk, you are ready to learn how they organize your data
+inside those protected files.

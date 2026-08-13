@@ -67,10 +67,10 @@ function Edge({ from, to, lit }: { from: string; to: string; lit: boolean }) {
       <path
         d={`M ${a.x} ${a.y} Q ${mid.x} ${a.y} ${mid.x} ${mid.y} Q ${mid.x} ${b.y} ${b.x} ${b.y}`}
         fill="none"
-        stroke={lit ? '#6366f1' : '#e2e8f0'}
         strokeWidth={2}
+        className={lit ? 'stroke-indigo-500' : 'stroke-slate-200 dark:stroke-slate-700'}
       />
-      <text x={mid.x} y={mid.y} className="fill-slate-400" fontSize={10}>
+      <text x={mid.x} y={mid.y} fontSize={10} className="fill-slate-400 dark:fill-slate-500">
         {lit ? '✓' : ''}
       </text>
     </>
@@ -101,14 +101,16 @@ export default function QueryExecutor() {
   }
 
   return (
-    <figure className="my-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-700">The life of a query — slow motion</p>
+    <figure className="my-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          The life of a query — slow motion
+        </p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => select(-1)}
-            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Reset
           </button>
@@ -139,9 +141,14 @@ export default function QueryExecutor() {
                   width={p.w}
                   height={p.h}
                   rx={10}
-                  fill={isActive ? '#6366f1' : done ? '#eef2ff' : '#f8fafc'}
-                  stroke={isActive ? '#6366f1' : done ? '#818cf8' : '#cbd5e1'}
                   strokeWidth={2}
+                  className={
+                    isActive
+                      ? 'fill-indigo-500 stroke-indigo-500'
+                      : done
+                        ? 'fill-indigo-50 stroke-indigo-400 dark:fill-indigo-500/20 dark:stroke-indigo-400'
+                        : 'fill-slate-50 stroke-slate-300 dark:fill-slate-800 dark:stroke-slate-600'
+                  }
                 />
                 <text
                   x={p.x + p.w / 2}
@@ -149,7 +156,7 @@ export default function QueryExecutor() {
                   textAnchor="middle"
                   fontSize={11}
                   fontWeight={600}
-                  fill={isActive ? '#ffffff' : '#334155'}
+                  className={isActive ? 'fill-white' : 'fill-slate-700 dark:fill-slate-200'}
                 >
                   {s.label.length > 14 ? s.label.slice(0, 13) + '…' : s.label}
                 </text>
@@ -158,7 +165,13 @@ export default function QueryExecutor() {
                   y={p.y + 42}
                   textAnchor="middle"
                   fontSize={9}
-                  fill={isActive ? '#c7d2fe' : done ? '#6366f1' : '#cbd5e1'}
+                  className={
+                    isActive
+                      ? 'fill-indigo-200'
+                      : done
+                        ? 'fill-indigo-500'
+                        : 'fill-slate-400 dark:fill-slate-500'
+                  }
                 >
                   {done ? 'done' : 'wait'}
                 </text>
@@ -168,15 +181,15 @@ export default function QueryExecutor() {
         </svg>
       </div>
 
-      <div className="min-h-[3.5rem] border-t border-slate-100 px-4 py-3">
+      <div className="min-h-[3.5rem] border-t border-slate-100 px-4 py-3 dark:border-slate-800">
         {active < 0 ? (
-          <p className="text-sm text-slate-400">
-            Press <span className="font-medium text-indigo-600">Play</span> (or tap any box) to walk
-            through how a query becomes rows.
+          <p className="text-sm text-slate-400 dark:text-slate-500">
+            Press <span className="font-medium text-indigo-600 dark:text-indigo-400">Play</span> (or
+            tap any box) to walk through how a query becomes rows.
           </p>
         ) : (
-          <p className="text-sm text-slate-600">
-            <span className="font-semibold text-indigo-600">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            <span className="font-semibold text-indigo-600 dark:text-indigo-400">
               Step {active + 1} · {STEPS[active].label}:
             </span>{' '}
             {STEPS[active].caption}

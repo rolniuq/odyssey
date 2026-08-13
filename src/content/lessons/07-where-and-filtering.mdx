@@ -1,0 +1,237 @@
+---
+{
+  'order': 7,
+  'title': 'Filtering Rows with WHERE',
+  'coreConcept':
+    'The WHERE clause filters candidate rows from a table expression by evaluating a boolean
+    condition for each row, retaining only those that evaluate to true.',
+  'docSource': 'https://www.postgresql.org/docs/current/queries-table-expressions.html',
+  'docTitle': 'The WHERE clause',
+  'difficulty': 'beginner',
+  'objectives':
+    [
+      'Explain how the PostgreSQL engine evaluates the WHERE clause during query execution',
+      'Construct queries using comparison and logical operators to filter rows',
+      'Distinguish between WHERE, HAVING, and client-side filtering',
+    ],
+  'quiz':
+    [
+      {
+        'question': 'In the security guard analogy, what represents the WHERE clause condition?',
+        'options':
+          [
+            'The guest list of people waiting outside',
+            'The specific rulebook used to check each guest at the door',
+            'The physical door of the club',
+            'The guests who successfully made it inside',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'The rulebook represents the WHERE clause condition because it is the specific rule
+          evaluated against each candidate row (guest) to decide if they are allowed through.',
+      },
+      {
+        'question':
+          'What must a WHERE clause expression evaluate to for a row to be included in the result
+          set?',
+        'options':
+          [
+            'Any non-zero integer',
+            'The boolean value true',
+            'The boolean value false or null',
+            'A valid text string matching the column name',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          "PostgreSQL evaluates the WHERE clause expression for each row. Only rows where the
+          expression evaluates to 'true' are retained. Rows evaluating to 'false' or 'null'
+          (unknown) are discarded.",
+      },
+      {
+        'question':
+          "In the hands-on walkthrough, which books were returned when filtering for 'pages > 300'?",
+        'options':
+          [
+            'The Hobbit, Dune, and A Game of Thrones',
+            'Dune and Neuromancer',
+            'Only A Game of Thrones',
+            'The Hobbit and The Great Gatsby',
+          ],
+        'answerIndex': 0,
+        'explanation':
+          "The books with page counts greater than 300 are 'The Hobbit' (310), 'Dune' (612), and 'A
+          Game of Thrones' (694). 'The Great Gatsby' (180) and 'Neuromancer' (271) are filtered out.",
+      },
+      {
+        'question':
+          'According to the comparison table, how does the WHERE clause differ from the HAVING
+          clause?',
+        'options':
+          [
+            'WHERE filters raw rows before aggregation, while HAVING filters grouped values after
+            aggregation.',
+            'WHERE can only filter numeric columns, while HAVING can filter any data type.',
+            'WHERE is executed at the very end of the query pipeline, while HAVING is executed
+            first.',
+            'There is no functional difference; they are aliases for the same operation.',
+          ],
+        'answerIndex': 0,
+        'explanation':
+          'The WHERE clause filters individual candidate rows before any grouping or aggregation
+          occurs. The HAVING clause is evaluated after GROUP BY to filter the aggregated group
+          results.',
+      },
+      {
+        'question': 'Why is the WHERE clause critical for database performance optimization?',
+        'options':
+          [
+            'It automatically compresses the table on disk to save space.',
+            'It allows the query planner to potentially use an index scan instead of scanning the
+            entire table.',
+            'It prevents users from writing invalid SQL syntax.',
+            'It forces the database to cache the entire table in memory.',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'A well-written WHERE clause allows the PostgreSQL query planner to utilize indexes (index
+          scan) rather than reading every single row on disk (sequential scan), drastically reducing
+          execution time.',
+      },
+      {
+        'question':
+          'According to the official documentation link provided, the WHERE clause is a subclause of
+          which broader SQL concept?',
+        'options':
+          [
+            'Table Expressions',
+            'Data Definition Language',
+            'Transaction Control',
+            'Window Functions',
+          ],
+        'answerIndex': 0,
+        'explanation':
+          "The official documentation URL path ('queries-table-expressions.html') and structure
+          categorize the WHERE clause as a subclause of Table Expressions.",
+      },
+    ],
+}
+---
+
+Imagine you are a security guard at a private club holding a guest list. A long line of people is
+waiting outside. Instead of letting everyone in and then sorting them out inside, you stand at the
+door with a specific rulebook: "Only people wearing formal shoes are allowed." As each person steps
+up, you evaluate them against this single rule. If they match, they pass through the door; if they
+do not, they are immediately turned away. The club inside only ever sees the filtered guests. In
+this scenario, the guest list is your table, the security guard is the database engine, and your
+rulebook is the filter condition.
+
+{/* DIAGRAM: An animation showing a stream of mixed-color shapes (rows) entering a gate labeled 'WHERE color = blue'. Only blue shapes pass through the gate, while red and green shapes are discarded. */}
+
+## The precise version
+
+In PostgreSQL, the `WHERE` clause is a fundamental component of a query expression that filters rows
+returned by a table expression. When a query is executed, the PostgreSQL server process scans the
+candidate rows from the target table (or tables). For each row, the engine evaluates the expression
+defined in the `WHERE` clause.
+
+This expression must evaluate to a boolean value: `true`, `false`, or `null` (representing unknown).
+If the expression evaluates to `true`, the row is retained in the working relation and passed to the
+next stage of query execution (such as projection or sorting). If it evaluates to `false` or `null`,
+the row is immediately discarded from the result set.
+
+This evaluation happens early in the query execution pipeline, specifically after the `FROM` clause
+but before grouping (`GROUP BY`), aggregating, or sorting (`ORDER BY`). Because it runs so early, it
+prevents unnecessary data from traveling through the rest of the execution pipeline, saving CPU and
+memory.
+
+## Hands-on walkthrough
+
+Let's create a temporary table of books and filter them using different conditions. First, we will
+set up our table and populate it with some sample data.
+
+```sql
+CREATE TEMP TABLE books (
+    id serial PRIMARY KEY,
+    title text NOT NULL,
+    genre text NOT NULL,
+    pages integer NOT NULL,
+    in_stock boolean NOT NULL
+);
+
+INSERT INTO books (title, genre, pages, in_stock) VALUES
+('The Hobbit', 'Fantasy', 310, true),
+('Dune', 'Sci-Fi', 612, true),
+('Neuromancer', 'Sci-Fi', 271, false),
+('A Game of Thrones', 'Fantasy', 694, true),
+('The Great Gatsby', 'Fiction', 180, false);
+```
+
+Now, let's run a query with a `WHERE` clause to find only Sci-Fi books that are currently in stock.
+We will use the logical operator `AND` to combine two conditions.
+
+```sql
+SELECT title, pages
+FROM books
+WHERE genre = 'Sci-Fi' AND in_stock = true;
+```
+
+Expected output:
+
+```text
+    title    | pages
+-------------+-------
+ Dune        |   612
+(1 row)
+```
+
+Next, let's try a comparison operator (`>`) to find books that are longer than 300 pages.
+
+```sql
+SELECT title, pages
+FROM books
+WHERE pages > 300;
+```
+
+Expected output:
+
+```text
+       title       | pages
+-------------------+-------
+ The Hobbit        |   310
+ Dune              |   612
+ A Game of Thrones |   694
+(3 rows)
+```
+
+Notice how the rows for "Neuromancer" (271 pages) and "The Great Gatsby" (180 pages) were completely
+omitted from the output because their evaluations returned `false`.
+
+## What this is NOT
+
+It is easy to confuse the `WHERE` clause with other filtering or limiting mechanisms in PostgreSQL.
+The table below highlights the critical differences:
+
+| Feature              | `WHERE` Clause                     | `HAVING` Clause               | `LIMIT` Clause                    | Client-Side Filtering               |
+| :------------------- | :--------------------------------- | :---------------------------- | :-------------------------------- | :---------------------------------- |
+| **Evaluation Stage** | Before aggregation (`GROUP BY`)    | After aggregation             | At the very end of the pipeline   | After data is sent over the network |
+| **Operates On**      | Individual raw rows                | Grouped/aggregated values     | The final sorted result set       | Application memory                  |
+| **Performance**      | Highly efficient (can use indexes) | Slower (must aggregate first) | Reduces network payload, not scan | Wasteful (transfers unused data)    |
+
+## The diagram matters
+
+Understanding the `WHERE` clause is the gateway to database performance optimization. When you write
+a `WHERE` clause, you are not just telling PostgreSQL _what_ you want; you are giving the query
+planner a blueprint for how to find it.
+
+If your filter matches a column that has an index, the server process can bypass scanning the entire
+table (a sequential scan) and instead jump directly to the matching rows (an index scan). This turns
+a slow, linear search into a lightning-fast lookup. Mastering `WHERE` prepares you for understanding
+execution plans, index design, and complex join conditions.
+
+{/* DIAGRAM: A comparison showing a Sequential Scan (reading every row in a table) versus an Index Scan (using a B-Tree index to jump straight to the matching row based on the WHERE clause). */}
+
+## Read the official docs
+
+For a complete list of operators and detailed rules on how table expressions are evaluated, read the
+official documentation on
+[The WHERE clause](https://www.postgresql.org/docs/current/queries-table-expressions.html).

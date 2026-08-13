@@ -1,0 +1,266 @@
+---
+{
+  'order': 5,
+  'title': 'Picking the Right Data Types',
+  'coreConcept':
+    'Data types are strict physical and logical constraints that dictate how PostgreSQL stores,
+    validates, and manipulates column values.',
+  'docSource': 'https://www.postgresql.org/docs/current/datatype.html',
+  'docTitle': 'Data Types',
+  'difficulty': 'beginner',
+  'objectives':
+    [
+      'Understand how data types affect physical disk storage and RAM utilization.',
+      'Recognize the performance implications of choosing incorrect types like text for UUIDs or
+      floats for currency.',
+      "Execute commands that demonstrate PostgreSQL's strict type-checking at the parser level.",
+    ],
+  'quiz':
+    [
+      {
+        'question':
+          'What is the primary risk described in the workshop analogy of placing a heavy iron chain
+          into a paper folder?',
+        'options':
+          [
+            'The folder gets lost in the corners of the workshop.',
+            'The folder rips and the workshop operations grind to a halt.',
+            'The chain becomes magnetized and unusable.',
+            'The folder is automatically converted into a wooden crate.',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'The analogy compares a heavy chain in a paper folder to forcing invalid data into a
+          mismatched type, which causes the system to fail (rip/grind to a halt) rather than
+          dynamically adapting.',
+      },
+      {
+        'question': "How does the PostgreSQL server process utilize a column's assigned data type?",
+        'options':
+          [
+            'It uses it to dynamically resize the hard drive partition on every write operation.',
+            'It determines the physical storage space allocation in bytes and defines the legally
+            allowed operations on that data.',
+            'It converts all data to text format before writing it to the write-ahead log (WAL).',
+            'It bypasses parser checks and delegates type safety entirely to the client application.',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'The precise version explains that a data type tells the server process how much physical
+          storage space (in bytes) to allocate and what operations (like addition or date
+          arithmetic) are legally allowed.',
+      },
+      {
+        'question':
+          'In the hands-on walkthrough, what specific error did PostgreSQL return when attempting to
+          insert the value 45000 into the quantity_in_stock column?',
+        'options':
+          [
+            'ERROR: invalid input syntax for type numeric',
+            'ERROR: smallint out of range',
+            'ERROR: integer overflow on column quantity',
+            'ERROR: type mismatch for column quantity_in_stock',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          "The walkthrough explicitly shows that inserting 45000 (which exceeds the 32,767 limit of
+          a 2-byte smallint) results in 'ERROR: smallint out of range'.",
+      },
+      {
+        'question':
+          "According to the 'What this is NOT' section, why is using double precision floats a bad
+          choice for storing monetary values?",
+        'options':
+          [
+            'PostgreSQL does not allow mathematical operations on floating-point types.',
+            'Floating-point types use binary approximations that introduce rounding errors.',
+            'Floats occupy 16 bytes of storage, which is too large for simple prices.',
+            'Floating-point columns can only store positive numbers.',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'The table explains that floating-point types use binary approximations and introduce
+          rounding errors (e.g., $19.99 becoming $19.989999), so numeric or decimal should be used
+          instead.',
+      },
+      {
+        'question':
+          'Why does storing a UUID as a text string instead of a native uuid type degrade
+          performance?',
+        'options':
+          [
+            'Text strings require manual compilation before they can be indexed.',
+            'The text representation is larger (36 characters vs 16 bytes), causing indexes to bloat
+            and reducing the number of index nodes that fit into RAM (shared buffers).',
+            'PostgreSQL disables B-Tree indexing entirely for columns of type text.',
+            'The native uuid type bypasses the shared buffers and writes directly to disk.',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          "The 'The diagram matters' section explains that a text UUID index is more than twice as
+          large as a native UUID index, meaning fewer index nodes fit into the shared buffers (RAM),
+          leading to expensive disk I/O.",
+      },
+      {
+        'question':
+          'Which official PostgreSQL documentation page is linked at the end of this lesson?',
+        'options':
+          [
+            '"Data Types" at https://www.postgresql.org/docs/current/datatype.html',
+            '"Table Creation" at https://www.postgresql.org/docs/current/ddl.html',
+            '"Numeric Types" at https://www.postgresql.org/docs/current/datatype-numeric.html',
+            '"Database Administration" at https://www.postgresql.org/docs/current/admin.html',
+          ],
+        'answerIndex': 0,
+        'explanation':
+          'The final section links to the "Data Types" page at
+          https://www.postgresql.org/docs/current/datatype.html.',
+      },
+    ],
+}
+---
+
+Imagine you are organizing a highly efficient physical workshop. You have different storage bins: a
+tiny magnetic tray for tiny screws, a heavy-duty wooden crate for heavy iron chains, and a labeled
+folder for paper receipts. If you throw a tiny screw into the giant wooden crate, it gets lost in
+the corners, and you waste massive amounts of space. If you try to force a heavy iron chain into a
+paper folder, the folder rips and your workshop operations grind to a halt. In PostgreSQL, data
+types are these specialized storage bins. By choosing the correct bin, you ensure that the database
+engine doesn't waste memory or disk space, and you prevent invalid items (like trying to store a
+word in a number bin) from breaking your system.
+
+## The precise version
+
+In PostgreSQL, every column in a table must be assigned a specific **data type**. A data type is a
+fundamental constraint that tells the PostgreSQL server process (the `postgres` daemon) two critical
+things:
+
+1. **Physical Storage Allocation:** How much physical storage space (in bytes) to allocate for the
+   value on disk and in memory.
+2. **Logical Behavior:** What operations (such as addition, string concatenation, or date
+   arithmetic) are legally allowed on that data.
+
+PostgreSQL is a strongly-typed database. When you define a column as an `integer` (which occupies
+exactly 4 bytes of storage), the server process will reject any attempt to insert a text string like
+`'apple'` or a decimal like `12.34`. This strict enforcement happens at the parser and executor
+levels before any data is written to the write-ahead log (WAL) or table heap.
+
+Choosing the correct type directly impacts performance. For example, using `bigint` (8 bytes) when a
+`smallint` (2 bytes) would suffice wastes 6 bytes per row. Over a table with 100 million rows, this
+seemingly minor choice wastes 600 megabytes of RAM and disk space, slowing down sequential scans and
+bloating the database buffer cache.
+
+Common categories include:
+
+- **Numeric:** `smallint` (2 bytes), `integer` (4 bytes), `bigint` (8 bytes), `numeric` (variable,
+  exact decimal), `real`/`double precision` (floating-point).
+- **Character:** `varchar(n)` (variable with limit), `char(n)` (fixed-length, blank-padded), `text`
+  (variable, unlimited).
+- **Date/Time:** `timestamp` (without timezone), `timestamptz` (with timezone - highly recommended),
+  `date`, `interval`.
+- **Boolean:** `boolean` (`true`, `false`, `null`).
+
+## Hands-on walkthrough
+
+Let's create a table that demonstrates how PostgreSQL enforces these types and how choosing the
+wrong type can cause immediate errors or silent inefficiencies.
+
+We will connect to our database and run a script to create a table for tracking warehouse inventory.
+
+```sql
+-- Create a table with precise data types
+CREATE TABLE inventory_items (
+    item_id serial PRIMARY KEY,
+    item_name text NOT NULL,
+    quantity_in_stock smallint NOT NULL,
+    exact_price numeric(10, 2) NOT NULL,
+    created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+PostgreSQL will respond with:
+
+```
+CREATE TABLE
+```
+
+Now, let's try to insert a valid row:
+
+```sql
+INSERT INTO inventory_items (item_name, quantity_in_stock, exact_price)
+VALUES ('Ergonomic Chair', 150, 299.99);
+```
+
+Output:
+
+```
+INSERT 0 1
+```
+
+Now, let's see what happens when we violate the data type constraints.
+
+First, let's try to insert a value that exceeds the physical limit of a `smallint` (which can only
+store numbers from -32,768 to 32,767):
+
+```sql
+INSERT INTO inventory_items (item_name, quantity_in_stock, exact_price)
+VALUES ('Box of Paperclips', 45000, 1.50);
+```
+
+Output:
+
+```
+ERROR:  smallint out of range
+```
+
+Next, let's try to insert a text string into the numeric `exact_price` column:
+
+```sql
+INSERT INTO inventory_items (item_name, quantity_in_stock, exact_price)
+VALUES ('Desk Lamp', 20, 'twenty dollars');
+```
+
+Output:
+
+```
+ERROR:  invalid input syntax for type numeric: "twenty dollars"
+LINE 2: VALUES ('Desk Lamp', 20, 'twenty dollars');
+                                 ^
+```
+
+PostgreSQL protects the integrity of your data at the gate. It refuses to write garbage data to
+disk.
+
+## What this is NOT
+
+Many developers coming from dynamic languages or NoSQL databases hold misconceptions about how
+PostgreSQL handles types. Let's clear those up.
+
+| What people think                                                         | The Reality in PostgreSQL                                                                                                                                                          |
+| :------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "I should just use `text` for everything and parse it in my application." | This destroys performance, prevents the database from indexing efficiently, and disables mathematical/date operations.                                                             |
+| "Using `varchar(255)` is faster than using `text`."                       | In PostgreSQL, `text` and `varchar` use the exact same underlying storage engine (TOAST). There is no performance difference; `varchar(n)` simply adds a length check constraint.  |
+| "A `double precision` float is perfect for storing money."                | Floating-point types use binary approximations and will introduce rounding errors (e.g., $19.99 becoming $19.989999). Always use `numeric` or `decimal` for exact monetary values. |
+| "Timestamps are stored as strings."                                       | Timestamps are stored internally as 8-byte integers representing microseconds since 2000-01-01. The string format you see is just for human readability.                           |
+
+## The diagram matters
+
+Understanding data types is the foundation of database design. When you choose the correct type, you
+are not just saving disk space; you are designing the memory layout of your indexes.
+
+PostgreSQL indexes (like B-Trees) store copies of your column values. If you index a `uuid` column
+stored as a `text` string (36 characters) instead of the native `uuid` type (16 bytes), your index
+will be more than twice as large. This means fewer index nodes fit into the PostgreSQL shared
+buffers (RAM), leading to expensive disk I/O operations and slower query times.
+
+{/* DIAGRAM: Show a comparison of a 16-byte native UUID index vs a 36-byte Text UUID index fitting into a fixed-size PostgreSQL shared buffer page. */}
+
+By matching your data types exactly to your domain requirements, you allow PostgreSQL to pack more
+rows into its 8KB page buffers. This unlocks maximum throughput and ensures your queries remain
+blazing fast even as your dataset grows to millions of rows.
+
+## Read the official docs
+
+To explore the complete list of built-in types, including geometric, network address, and XML types,
+read the official PostgreSQL documentation on
+[Data Types](https://www.postgresql.org/docs/current/datatype.html).
