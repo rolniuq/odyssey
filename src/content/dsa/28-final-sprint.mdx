@@ -1,0 +1,311 @@
+---
+order: 28
+title: 'Final sprint: reviewing the whole sequence'
+coreConcept:
+  'The last day, and deliberately the widest: two problems that each pull from several days of the
+  track at once. Top K Frequent Elements fuses hash-map counting with heap selection; Copy List with
+  Random Pointer fuses linked lists with the map-between-structures trick. One page, one goal —
+  prove the whole sequence has become reflex.'
+docSource: 'https://www.geeksforgeeks.org/clone-linked-list-next-random-pointer-o1-space/'
+docTitle: 'Clone a Linked List with next and Random Pointer — GeeksforGeeks'
+difficulty: 'advanced'
+objectives:
+  - 'Compose hash-map counting with a selection step to solve Top K Frequent Elements end to end'
+  - 'State the count-then-select discipline and name its O(n) and O(n log k) phases'
+  - 'Deep-copy a linked list with random pointers using a map from original node to copy'
+  - 'Read and write the serialized [[val, randomIndex], ...] list encoding'
+  - 'Trace which earlier days each review problem pulls from'
+quiz:
+  - question: 'In Top K Frequent Elements, what does the first pass over nums exist to do?'
+    options:
+      - 'Sort the array so frequencies become visible'
+      - 'Count every element frequency into a hash map in O(n)'
+      - 'Find the maximum value in the array'
+      - 'Build a min-heap of the first k elements'
+    answerIndex: 1
+    explanation:
+      'Frequency is the raw material the whole problem runs on, and a hash map tallies every element
+      in a single O(n) pass. Sorting values does not group frequencies, the maximum value says
+      nothing about popularity, and a heap in the first pass is premature — you cannot keep the top
+      k until every count exists. This is Day 1 hashing returning at the finish line.'
+  - question: 'After counting, what is a smart structure for extracting the top k when k is small?'
+    options:
+      - 'A min-heap of size k that always drops the smallest candidate, keeping the k largest counts
+        seen so far — O(n log k)'
+      - 'A linked list that preserves insertion order'
+      - 'A stack that pops the largest count'
+      - 'A binary search tree over counts'
+    answerIndex: 0
+    explanation:
+      'A min-heap of size k discards the smallest of the current top-k candidates for every new
+      element, so it holds exactly the k largest counts after one pass — O(n log k). A linked list
+      stores no frequency ordering, a stack only offers LIFO, and a BST is heavier machinery than
+      the job needs. This is Day 10 heaps wearing a smaller hat.'
+  - question:
+      'Why can you not wire the random pointer in the same pass that creates the copy nodes?'
+    options:
+      - 'Because random pointers always point forward in the list'
+      - 'Because a node random may target a node that has not been created yet, so every copy node
+        must exist before any random pointer is wired — via a map from original node to copy'
+      - 'Because random pointers are illegal in JavaScript'
+      - 'Because the list must be sorted by value first'
+    answerIndex: 1
+    explanation:
+      'random can point at any node — forward or backward. In a single left-to-right pass, the
+      moment you reach node i its random may reference node j beyond i, which does not exist yet.
+      The classic fix creates every copy node up front, remembers the original-to-copy pairing in a
+      map, and wires next and random in a second pass, so both directions resolve. Pointers are
+      always legal, and sorting has nothing to do with ancestry or wiring.'
+  - question: 'Which pair of earlier days does the Top K problem most directly pull from?'
+    options:
+      - 'Day 1 hash-map counting plus Day 10 heaps (or Day 23 sorting) for the selection step'
+      - 'Day 6 linked lists plus Day 20 bit manipulation'
+      - 'Day 5 binary search plus Day 15 graphs'
+      - 'Day 4 stacks plus Day 21 monotonic stacks'
+    answerIndex: 0
+    explanation:
+      'Top K is a "count first, select second" shape: the tally is pure Day 1 hashing, and pulling
+      the top k is a Day 10 min-heap or a Day 23 sort. Linked lists, bit tricks, binary search, and
+      stacks solve different families entirely — the point of the final sprint is that you can say
+      which family a problem belongs to at a glance.'
+  - question: 'In Word Break, dp[i] = true means…'
+    options:
+      - 'the prefix s[0..i) can be segmented into a sequence of dictionary words'
+      - 'the character at index i is a dictionary word'
+      - 'there are i dictionary words inside the string'
+      - 's itself appears in the dictionary'
+    answerIndex: 0
+    explanation:
+      'dp[i] is a boolean about a prefix: can s[0..i) split entirely into dictionary words? The base
+      dp[0] is true for the empty prefix, each cell is built from smaller cells, and the answer is
+      dp[s.length]. The other three options describe quantities the table never stores — single
+      characters, counts of words, and whole-string membership are different questions.'
+  - question: 'In the LCA recursion, the moment both children of a node return a hit, the node…'
+    options:
+      - 'is the lowest common ancestor, because the two targets sit on opposite sides of it'
+      - 'must keep searching higher up the tree'
+      - 'returns null to signal failure'
+      - 'returns only the left hit'
+    answerIndex: 0
+    explanation:
+      'Both subtrees reporting means p and q are on opposite sides of this node (or this node is one
+      of them). Nothing deeper is an ancestor of both, so the node declares itself the answer — the
+      post-order "ask both children, then decide" shape. Searching higher would move the answer
+      further from the targets, and returning null or a single hit would drop information the node
+      already has.'
+  - question: 'Recap from Day 2: a closing-in two-pointer move is safe because…'
+    options:
+      - 'the array is sorted (or monotone), so every candidate through the moved index is ruled out
+        at once'
+      - 'the hash map remembers what the pointer saw'
+      - 'the window stays exactly the same size'
+      - 'the recursion handles the rest'
+    answerIndex: 0
+    explanation:
+      'Closing-in pointers lean on ordering: with a sorted array, if the current sum is too big then
+      every pair through the current right is too big, and one move discards the whole region. No
+      ordering, no safe discard — which is why the technique never applies to unsorted input. A hash
+      map, fixed-size windows, and recursion are different tools for different jobs.'
+  - question: 'In a sliding window, which statement about the edges is true?'
+    options:
+      - 'Both edges only ever advance — the left edge never moves backward'
+      - 'The left edge may move left whenever the window is too short'
+      - 'The right edge moves first to the end, then the left edge follows once'
+      - 'The edges cross and then swap directions'
+    answerIndex: 0
+    explanation:
+      'The linear cost of a sliding window comes from monotonicity: the right edge adds each index
+      once, the left edge removes each index once, and neither ever retreats. A left edge that could
+      move backward would re-add characters and destroy the O(n) bound. This is the Day 2 shrinking
+      invariant specialized to a moving window.'
+  - question: 'In the serialized [[val, randomIndex], ...] list, a forward random reference is…'
+    options:
+      - 'fine — it is exactly why copies must all be created before any random pointer is wired'
+      - 'an error the test cannot handle'
+      - 'only allowed at the head'
+      - 'resolved by copying the value instead of the pointer'
+    answerIndex: 0
+    explanation:
+      'Forward references are the normal, hard case: when node i points to node j > i, a one-pass
+      copier has no node j yet. Creating every copy first and then wiring random through the
+      original-to-copy map handles both forward and backward references uniformly. Copying by value
+      would break nodes that share values, and there is nothing erroneous about a forward pointer.'
+  - question: 'Why is today a fair capstone for the whole 28-day track?'
+    options:
+      - 'It introduces brand-new theory never seen before'
+      - 'Its problems each compose several earlier days — hashing, heaps, linked lists, maps, and
+        the count-first habit — so solving them proves the sequence is reflex'
+      - 'It only reviews Day 1 material'
+      - 'It is entirely about recursion'
+    answerIndex: 1
+    explanation:
+      'Top K composes Day 1 counting with Day 10 selection; Copy List composes Day 6 linked lists
+      with the map-between-structures trick and the build-then-wire habit. Neither problem needs new
+      theory — the review days deliberately add none — so a correct solution demonstrates that
+      earlier tools were truly internalized. Any claim of brand-new theory or a single-topic review
+      misses the point of the capstone.'
+problems:
+  - title: 'Top K Frequent Elements'
+    leetcodeId: 347
+    difficulty: 'medium'
+    prompt: |
+      Given an integer array nums and an integer k, return the k most frequent elements. The output
+      must list the values in descending order of frequency; when frequencies tie, the value that
+      appears first in nums comes first, so the output is deterministic. The signature is
+      solution(nums, k).
+      Example: [1,1,1,2,2,3], k=2 → [1,2]; [5,3,5,3,1], k=2 → [5,3].
+    starterCode: |
+      function solution(nums, k) {
+        // Plan: pass one counts every value into a hash map, O(n). Pass two
+        // orders the distinct values by descending count, breaking ties by
+        // first appearance in nums, then takes the first k. A min-heap of
+        // size k selects in O(n log k); sorting the (value, count) pairs
+        // also works.
+        return [];
+      }
+    testCases:
+      - input: [[1, 1, 1, 2, 2, 3], 2]
+        expected: [1, 2]
+      - input: [[1], 1]
+        expected: [1]
+      - input: [[1, 1, 1, 1], 1]
+        expected: [1]
+      - input: [[5, 3, 5, 3, 1], 2]
+        expected: [5, 3]
+      - input: [[4, 1, -1, 2, -1, 2, 3], 2]
+        expected: [-1, 2]
+      - input: [[1, 2], 2]
+        expected: [1, 2]
+  - title: 'Copy List with Random Pointer'
+    leetcodeId: 138
+    difficulty: 'medium'
+    prompt: |
+      A linked list where each node holds a value and a random pointer that may point at any node or
+      at null. The input encodes the list as an array of pairs [[val, randomIndex], ...]: randomIndex
+      is the index of the node the random pointer targets, or null when random is null. Return the
+      DEEP COPY of the list in the same encoding — create brand-new nodes with identical values, wire
+      next and random so the structure is reproduced exactly, then serialize the copy back to the
+      [[val, randomIndex], ...] form. The signature is solution(head).
+      Example: [[7,null],[13,0],[11,4],[10,2],[1,0]] → [[7,null],[13,0],[11,4],[10,2],[1,0]].
+    starterCode: |
+      function solution(head) {
+        // Plan: first create one brand-new node per entry, keeping a map
+        // from original index to its copy. Wire next pointers in index
+        // order. Then for every entry, if randomIndex is not null, set the
+        // copy's random to the copy built for that index. Finally serialize
+        // each copy to [val, randomIndex] and return the array. Empty list
+        // -> [].
+        return [];
+      }
+    testCases:
+      - input:
+          - [[7, null], [13, 0], [11, 4], [10, 2], [1, 0]]
+        expected:
+          - [7, null]
+          - [13, 0]
+          - [11, 4]
+          - [10, 2]
+          - [1, 0]
+      - input:
+          - [[1, 1], [2, 1]]
+        expected:
+          - [1, 1]
+          - [2, 1]
+      - input:
+          - [[3, null], [3, 0], [3, null]]
+        expected:
+          - [3, null]
+          - [3, 0]
+          - [3, null]
+      - input:
+          - [[3, null]]
+        expected:
+          - [3, null]
+      - input: [[]]
+        expected: []
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './28-final-sprint.frames';
+
+<DsaVisualizer title="Counting first, selecting second" frames={frames} client:idle />
+
+## The one question this page answers
+
+The track ends the way it began: not with a new concept, but with composition. This page answers one
+question: _can you solve a problem that needs two tools at once?_ Top K Frequent Elements needs Day
+1 hashing for the counts and Day 10 heaps for the selection. Copy List with Random Pointer needs Day
+6 linked-list surgery and the map-between-structures habit from Day 25. Two problems, no new theory
+— only the proof that twenty-seven days of tools have become reflex.
+
+## Start with an analogy
+
+A classroom where every student owns zero or more marbles. Who are the top k collectors? You cannot
+rank anyone before the ledger exists, so first you tally every marble in one sweep. Then you read
+the ledger and keep only the k biggest totals, dropping the smallest total whenever a bigger one
+shows up. Tally first, select second — never rank before you count.
+
+A filing cabinet of records, each with a "related to" note referencing another record by its
+position — sometimes forward, sometimes backward. To duplicate the cabinet faithfully you first make
+a blank twin of every record, then copy the notes across. A map tells you which twin belongs to
+which original, so even a note pointing to a record you have not reached yet still lands on the
+right twin.
+
+The marble ledger is the frequency hash map. The blank-twin step is "create all copies before wiring
+random."
+
+## Top K Frequent Elements: count, then select
+
+The problem is two phases and the discipline is to never merge them.
+
+1. **Count.** Walk `nums` once, tallying every value into a hash map — O(n), one update per element.
+   Frequencies are the raw material; nothing about ranking happens here.
+2. **Select.** Collect the distinct values with their counts. A min-heap of size `k` keeps the `k`
+   largest counts seen so far, dropping the smallest candidate on every new element — O(n log k).
+   Sorting the pairs instead costs O(m log m) for `m` distinct values; both are valid, the heap is
+   the smarter choice for small `k`.
+
+The result in the common case is decided by the tally: `[1,1,1,2,2,3]` gives counts `1:3, 2:2, 3:1`,
+so the top 2 are `1` and `2`. Watch the visualizer fill the tally, then pick the top k.
+
+## Copy List with Random Pointer: build copies first, then wire
+
+The serialized input `[[val, randomIndex], ...]` describes a list whose `random` may point anywhere
+— including ahead of the current node. That forward case is the entire trap.
+
+- **Naive one pass fails:** copying node `i` and immediately wiring `random` fails when `random`
+  targets node `j > i`, which does not exist yet.
+- **Build then wire:** create one brand-new node per entry first, remembering each copy. Wire `next`
+  in index order. Then, for each entry, point the copy's `random` at the copy built for
+  `randomIndex`. Both directions resolve because every copy already exists.
+- **Serialize back:** emit `[val, randomIndex]` per copy, reading `randomIndex` from the
+  original-to-copy map in reverse.
+
+This is Day 6 linked lists with a Day 25 map-as-glue: one structure stores the pairing so pointer
+surgery stays O(n). The classic LeetCode variant (with `Node` objects) is the same algorithm; the
+serialized contract here just makes the judge JSON-friendly.
+
+## What this is NOT
+
+| Misconception                                   | Truth                                                                                                                |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| "Top K is solved by sorting the original array" | Sorting values does not group by frequency; the hash-map tally must come first, then a heap or sort on the _counts_. |
+| "Top K needs every element ranked"              | A min-heap of size k keeps only the candidates that matter — O(n log k), cheaper than a full sort when k is small.   |
+| "Copy List means duplicating the values"        | The random pointer must be rewired to the twin nodes, not copied by value; shared values make value-copying wrong.   |
+| "One pass can wire the random pointers"         | A forward random reference points at a node not yet created; every copy must exist before any random wiring happens. |
+| "Review days introduce new theory"              | Every move in today's problems is an earlier day — hashing, heaps, linked lists, maps; only the combination is new.  |
+
+## Why this matters for the rest of the trip
+
+The final sprint is a mirror of the whole arc: Day 1 taught you to hash, Day 2 taught you to move
+pointers, Day 6 taught you linked lists, Day 10 taught you heaps, Day 25 taught you to weld two
+structures together — and today you did all of it in two problems. Real interview and engineering
+problems are rarely one pure pattern; they are compositions like these. If you can look at a problem
+and name both its counting phase and its selection phase — or notice that a copy needs to exist
+before a pointer can be wired — you are no longer learning patterns, you are _using_ them. The track
+is complete: twenty-eight days, one concept per page, and the habit, now, to explain any of it
+simply.
+
+Solve the two problems above. For Top K, write the count pass and the selection pass as two clearly
+separated steps. For Copy List, resist the one-pass impulse — create every copy first, then wire,
+and the forward `randomIndex` cases stop being special at all.
