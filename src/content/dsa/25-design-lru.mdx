@@ -1,0 +1,227 @@
+---
+order: 25
+title: 'Design: the LRU cache that forgets politely'
+coreConcept:
+  'An LRU (least-recently-used) cache is a hash map plus a doubly linked list sharing one invariant:
+  the map gives O(1) lookups and the list keeps recency order, so both get and put — including
+  eviction — run in constant time, which is why caching in real systems leans on exactly this pair.'
+docSource: 'https://www.geeksforgeeks.org/lru-cache-implementation/'
+docTitle: 'Introduction to LRU Cache — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Explain the eviction policy: when the cache is full, the least-recently-used entry leaves first'
+  - 'Say why a hash map alone is not enough — it finds keys in O(1) but cannot order them — and why
+    a list alone cannot find keys in O(1)'
+  - 'Draw the doubly linked list with head and tail sentinels, least-recent on one end and
+    most-recent on the other'
+  - 'Implement get: return the value and move the node to the most-recent end; and put: insert at
+    the most-recent end, updating or evicting as needed'
+  - 'Prove the O(1) claim: every operation touches a constant number of pointers and one map lookup'
+quiz:
+  - question: 'When an LRU cache at capacity receives a new key, which entry is removed?'
+    options:
+      - 'The newest entry, because it just arrived'
+      - 'The least-recently-used entry — the one furthest back in recency order — which is evicted to
+        make room for the newcomer'
+      - 'The entry with the smallest value'
+      - 'A random entry'
+    answerIndex: 1
+    explanation:
+      'LRU is a usage policy, not a value or order-of-arrival policy: the cache keeps the entries most
+      likely to be wanted again, and the least-recently-used one is the least likely, so it is
+      sacrificed first. Evicting the newest entry would be LIFO, evicting by value confuses value with
+      recency, and random eviction has no such guarantee — all three break the LRU contract.'
+  - question: 'Why is a hash map alone not enough to build an LRU cache?'
+    options:
+      - 'Hash maps are too slow'
+      - 'A hash map finds a key in O(1) but stores no recency order, so it cannot tell you which key
+        was least recently used'
+      - 'Hash maps cannot store numbers'
+      - 'Hash maps lose keys on resize'
+    answerIndex: 1
+    explanation:
+      'Lookup speed is not the problem — the map solves it. The gap is ordering: eviction needs "which
+      entry was used longest ago", and a hash map has no notion of sequence. That is precisely the job
+      the doubly linked list does, which is why the design pairs them. A map is fast and unordered; a
+      list is ordered and slow to find keys; together each covers the other&#8217;s weakness.'
+  - question: 'What makes a doubly linked list (not a singly linked one) the right partner for the
+    map?'
+    options:
+      - 'Doubly linked lists use less memory'
+      - 'Removing a node from the middle of a singly linked list requires finding its predecessor,
+        which is O(n); with prev pointers the node removes itself in O(1), and that is exactly the
+        move-to-front and evict operations an LRU does'
+      - 'Doubly linked lists are sorted automatically'
+      - 'Singly linked lists cannot store objects'
+    answerIndex: 1
+    explanation:
+      'The list&#8217;s only job is to cut a node out of the middle (move-to-most-recent) and splice one
+      in — both need access to the node before the target. A singly linked list can only find that
+      predecessor by walking, O(n); the prev pointer hands it over directly, keeping every operation
+      O(1). Doubling the links costs memory, not ordering, and singly linked lists store objects
+      fine — the difference is purely the cost of removal.'
+  - question: 'What does the head sentinel (a dummy node) buy you?'
+    options:
+      - 'Nothing; it is decoration'
+      - 'It removes the empty-list special case — head.next is always a real node or the tail
+        sentinel, so insert-at-front and evict-from-back never branch on "is the list empty?"'
+      - 'It doubles the capacity'
+      - 'It makes the cache thread-safe'
+    answerIndex: 1
+    explanation:
+      'Sentinels convert boundary conditions into data: the head sentinel is always there, so "insert
+      after head" never needs to ask whether a first node exists, and eviction reads head.next safely
+      even for an empty cache. That means the pointer surgery is one uniform code path instead of a
+      pile of if-checks. Sentinels hold no real key, they do not change capacity, and threading is a
+      separate concern they do not address.'
+  - question: 'During a get on a key that exists, what changes besides the return value?'
+    options:
+      - 'Nothing — reads never mutate state'
+      - 'The node is unlinked from its current spot and re-linked at the most-recent end, because
+        using a key refreshes its recency'
+      - 'The key is deleted'
+      - 'The map is rebuilt'
+    answerIndex: 1
+    explanation:
+      'The whole meaning of "least recently used" is that a read is a use: every successful get moves
+      its node to the most-recent end so that unused neighbors drift toward eviction. A get that did
+      not reorder would make the "recently" part of the policy lie. Deleting on read or rebuilding the
+      map would change both semantics and complexity, so those are different designs.'
+  - question: 'What is the time complexity of put on an LRU cache with the map + list design?'
+    options:
+      - 'O(n) because the list must be sorted'
+      - 'O(1) — one map lookup, and either an update with a constant number of pointer changes, or an
+        insertion plus a head eviction, both of which touch a bounded set of neighbors'
+      - 'O(log n) like a balanced tree'
+      - 'O(n²) in the worst case'
+    answerIndex: 1
+    explanation:
+      'Every put is constant work: the map lookup is O(1) on average, and each list operation — update
+      in place, move to the most-recent end, or evict from the least-recent end — rewires a handful of
+      pointers regardless of how many nodes exist. Nothing is sorted, no search happens, and the
+      pointer surgery is bounded, so the answer is O(1), not a function of n at all.'
+problems:
+  - title: 'LRU Cache'
+    leetcodeId: 146
+    difficulty: 'medium'
+    prompt: |
+      Design a data structure for an LRU cache. Your runner calls solution(capacity, operations,
+      args) and expects one result per operation, in order: every get yields its value (or -1 if
+      missing), every put yields null. operations is an array of strings like "put" and "get";
+      args holds the matching arguments — a put has [key, value], a get has [key]. A get must move
+      the key to most-recently-used; a put inserts at most-recently-used, updating the value if the
+      key exists, and evicting the least-recently-used key when full. capacity is a positive
+      integer. Implement solution so the whole sequence passes; every operation should run in O(1).
+      Example: capacity 2, ops ["put","put","get","put","get","put","get","get","get"] with args
+      [[1,1],[2,2],[1],[3,3],[2],[4,4],[1],[3],[4]] →
+      [null,null,1,null,-1,null,-1,3,4].
+    starterCode: |
+      function solution(capacity, operations, args) {
+        // Plan: a Map from key -> node plus a doubly linked list guarded by
+        // head/tail sentinels. get moves a node to the tail (most-recent)
+        // and returns its value. put updates an existing node's value and
+        // moves it to the tail, or — when the map is full — evicts the head
+        // node before inserting. Collect one result per operation: get ->
+        // value or -1, put -> null.
+        const results = [];
+        return results;
+      }
+    testCases:
+      - input:
+          - 2
+          - ['put', 'put', 'get', 'put', 'get', 'put', 'get', 'get', 'get']
+          - [[1, 1], [2, 2], [1], [3, 3], [2], [4, 4], [1], [3], [4]]
+        expected:
+          - null
+          - null
+          - 1
+          - null
+          - -1
+          - null
+          - -1
+          - 3
+          - 4
+      - input:
+          - 1
+          - ['put', 'get', 'put', 'get']
+          - [[2, 1], [2], [3, 2], [3]]
+        expected: [null, 1, null, 2]
+      - input:
+          - 2
+          - ['get', 'put', 'put', 'get']
+          - [[2], [2, 1], [1, 1], [2]]
+        expected: [-1, null, null, 1]
+---
+
+import LruVisualizer from '../../components/LruVisualizer';
+
+<LruVisualizer />
+
+## The one question this page answers
+
+Caches work by predicting the future from the past: the entry you used recently is the one you will
+likely use next. This page answers one question: _can you honor that prediction with constant-time
+operations, even while the cache forgets its oldest entry?_ The answer is the LRU design — and the
+trick is that no single data structure can do it. A hash map finds things instantly but remembers no
+order; a doubly linked list remembers order but finds nothing quickly. The design that works is both
+at once, sharing one invariant, so eviction becomes a pointer shuffle instead of a scan.
+
+## Start with an analogy
+
+A desk with room for two reference books. Each time you use a book, you move it to the top of the
+stack on your desk; the book at the bottom of the stack is the one you have not touched in the
+longest time. When a third book arrives and the desk can hold two, the bottom book goes back to the
+shelf. You never hunt for a book — you know the top of the stack — and you never shuffle the whole
+pile; each use only reorders the two books.
+
+The stack of books is the **doubly linked list** (recency order), your memory of where each book is
+is the **hash map** (O(1) lookup), and the book sent to the shelf is the **least-recently-used
+eviction**.
+
+## The two halves, and why neither alone suffices
+
+- **The hash map** (`key → node`) answers "does this key exist, and where?" in O(1). But a hash map
+  has no order — it cannot say which key is oldest.
+- **The doubly linked list** keeps recency order, least-recent on one end, most-recent on the other.
+  But finding a key in a list is a walk, O(n).
+
+The synthesis: the map stores **pointers to list nodes**, so a lookup finds the node, and the node
+knows its own neighbors — unlink and re-link in O(1). Head and tail sentinels remove every
+empty-list special case. Watch the visualizer above run capacity-2 cache through the classic
+LeetCode sequence: you can see the evictions (key 2, then key 1) and the reordering on every hit.
+
+## The operations
+
+- **get(key):** look up the node in the map. If missing, return −1. If present, unlink the node and
+  splice it at the most-recent end; return its value.
+- **put(key, value):** if the key exists, update its value and move its node to the most-recent end.
+  Otherwise, if the map is full, evict the least-recent node (the one after the head sentinel) —
+  delete it from the map too — then insert the new node at the most-recent end.
+
+Every step is a bounded pointer rewrite plus one map operation: **O(1)** per call, no scans, no
+sorts. The price you pay is O(capacity) memory and the discipline to never let the map and the list
+disagree.
+
+## What this is NOT
+
+| Misconception                      | Truth                                                                                                                            |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| "LRU just means delete the oldest" | It means delete the least **recently used**; an old key that gets touched every minute survives while an untouched new key goes. |
+| "A single structure is enough"     | The map gives lookups but no order; the list gives order but no lookups. The design is the pair and its shared invariant.        |
+| "Doubly linked = doubly expensive" | The second pointer is what lets a middle node remove itself in O(1); without it, deletion walks the list.                        |
+| "get should not change anything"   | A read is a use. Successful gets must move their node to the most-recent end, or "recently used" stops meaning anything.         |
+| "LRU is only a LeetCode problem"   | It is the cache policy of databases, OS page replacement, and web caches — the same map-plus-list shape appears in production.   |
+
+## Why this matters for the rest of the trip
+
+This is the capstone of the design mindset the track has been building: know what each structure is
+good at, combine them so each covers the other's weakness, and guard the invariant that keeps them
+consistent. The map-plus-list pattern recurs everywhere — LFU caches, eviction layers, frequency
+counters — and the "design problem" shape (state + O(1) operations) is a whole interview category of
+its own. More than any single algorithm, this page teaches you to think in pairs: one structure for
+fast access, one for fast ordering, welded together by a shared pointer.
+
+Solve the problem above. Write the two sentinels and the node class first, then implement
+move-to-tail and evict-from-head as pure pointer surgery, and only then wire the map in. And trace
+the full example by hand — the answer your runner expects is exactly the sequence the visualizer
+played.

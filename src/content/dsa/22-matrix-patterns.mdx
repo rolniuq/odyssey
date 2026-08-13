@@ -1,0 +1,240 @@
+---
+order: 22
+title: 'Matrix patterns: rotations and spirals'
+coreConcept:
+  'A matrix is an array of arrays, and two of its most common dances reduce to loops with tame
+  indices: rotate a square 90° clockwise as transpose-then-reverse-rows, and walk a spiral by
+  peeling four edges with four boundaries — top, bottom, left, right — that tighten inward.'
+docSource: 'https://www.geeksforgeeks.org/print-a-given-matrix-in-spiral-form/'
+docTitle: 'Print a given matrix in spiral form — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Read a matrix as rows of rows and name cells by (row, column), the pair of indices that makes
+    every matrix loop legible'
+  - 'Rotate a square matrix in place: transpose (swap across the main diagonal), then reverse each
+    row — one clean two-step recipe'
+  - 'Walk a spiral by tracking four boundaries — top, bottom, left, right — and peeling one edge per
+    pass'
+  - 'Handle the degenerate shapes: single row, single column, and the boundary checks that keep a
+    spiral from double-reading'
+  - 'Price both recipes: rotate is O(n²) with O(1) extra space, spiral is O(m × n) with O(1) extra
+    space'
+quiz:
+  - question: 'To rotate a square matrix 90° clockwise, which two-step recipe works?'
+    options:
+      - 'Reverse the order of the rows, then reverse each row'
+      - 'Transpose the matrix (swap cell (i, j) with (j, i)), then reverse each row'
+      - 'Reverse each row, then transpose'
+      - 'Shift every row up by one'
+    answerIndex: 1
+    explanation:
+      'Transpose mirrors the matrix across the main diagonal, turning each row into a column; then
+      reversing every row flips each row left to right, which is exactly a 90° clockwise rotation.
+      Reversing row order then rows produces a 90° counter-clockwise turn in disguise; reverse-then-
+      transpose is a different composition; and shifting rows just translates the grid.'
+  - question: 'In a transpose, which pairs of cells get swapped?'
+    options:
+      - 'Every pair (i, j) with i < j is swapped with its mirror (j, i) — the main diagonal (i === j)
+        stays put'
+      - 'Every cell is swapped with the one to its right'
+      - 'Only the four corners swap'
+      - 'Rows swap with rows and columns with columns'
+    answerIndex: 0
+    explanation:
+      'The diagonal from top-left to bottom-right is the mirror line: each off-diagonal pair
+      (i, j) and (j, i) swaps exactly once if you only walk i < j. Diagonal cells map to themselves,
+      which is why they are skipped, not swapped with a neighbor or corner; the whole grid is a
+      pairwise mirror, not a rotation of individual elements.'
+  - question: 'Why does a single-column matrix, say [[1], [2], [3]], spiral to [1, 2, 3] and not
+    stop early?'
+    options:
+      - 'Because the top-edge pass reads 1, and the bottom-edge pass is skipped, leaving 2 and 3
+        unread'
+      - 'After the top edge (1) and right edge (2, 3) are read, the checks top <= bottom and left <=
+        right decide whether the bottom and left passes run — with the right edge consumed, the
+        bottom-edge pass still runs while a boundary holds, so 3 is caught too'
+      - 'Because the matrix is secretly square'
+      - 'Because spirals always read the center last by luck'
+    answerIndex: 1
+    explanation:
+      'The guard is the whole story: after peeling the top row and the right column, the algorithm
+      only runs the bottom and left passes if the boundaries have not crossed. With a single column,
+      top = 1 and bottom = 2 still satisfy top ≤ bottom, so the bottom pass reads 3, and only then do
+      the boundaries meet. Skipping the guard would over-read a 1×n matrix; squareness is
+      irrelevant; and luck is not an algorithm.'
+  - question: 'What happens to the four boundaries after a full spiral pass?'
+    options:
+      - 'They stay fixed so the next pass re-reads the same ring'
+      - 'Each pass consumes one edge and advances one boundary — top increments, right decrements,
+        bottom decrements, left increments — so the box shrinks and never repeats a cell'
+      - 'They double'
+      - 'They swap corners'
+    answerIndex: 1
+    explanation:
+      'The boundary movement is the mechanism: top row read → top++, right column read → right−−,
+      bottom row read → bottom−−, left column read → left++. Each cell belongs to exactly one edge
+      pass, so the tightened box can never revisit a cell. Fixed boundaries would loop forever,
+      doubling has no meaning, and swapping corners is a different transformation entirely.'
+  - question: 'What is the time cost of rotating an n × n matrix in place?'
+    options:
+      - 'O(n) because only the diagonal matters'
+      - 'O(n²) — every one of the n² cells must move exactly once, and the two passes (transpose,
+        then row reverses) each touch every cell'
+      - 'O(n log n) like a sort'
+      - 'O(1) because it is just two swaps'
+    answerIndex: 1
+    explanation:
+      'Every cell has to land somewhere new, and there are n² of them, so the work is at least n².
+      Transpose touches n²/2 pairs and the row reverses touch n² cells total, both linear in the
+      grid size — O(n²). The diagonal is only n cells, so it cannot do the work; sorting has no role;
+      and the swap is constant-time per cell, not for the whole grid.'
+  - question: 'The spiral walk of an m × n matrix needs how much extra memory?'
+    options:
+      - 'O(m × n) for a visited grid'
+      - 'O(1) — just the four boundary counters and the result array; no visited flags are required
+        because the boundaries already guarantee each cell is read once'
+      - 'O(m + n) for a hash set'
+      - 'O(n) for a stack'
+    answerIndex: 1
+    explanation:
+      'The boundary trick replaces bookkeeping: you do not need to mark cells visited, because the
+      four counters already ensure each cell is peeled exactly once. So beyond the output array the
+      cost is four integers — O(1). A visited grid would answer the same question but at O(m × n)
+      memory, and neither a hash set nor a stack is involved in the boundary walk.'
+problems:
+  - title: 'Rotate Image'
+    leetcodeId: 48
+    difficulty: 'medium'
+    prompt: |
+      You are given an n × n matrix of integers. Rotate it 90 degrees clockwise, in place, and
+      return the rotated matrix (the runner compares what you return). Recipe: transpose — swap
+      matrix[i][j] with matrix[j][i] for every i < j — then reverse every row. The signature is
+      solution(matrix), where matrix is an array of n rows, each an array of n numbers.
+      Example: [[1,2,3],[4,5,6],[7,8,9]] → [[7,4,1],[8,5,2],[9,6,3]].
+    starterCode: |
+      function solution(matrix) {
+        // Plan: transpose — for i < j, swap matrix[i][j] with matrix[j][i]
+        // so each row becomes a column. Then reverse every row in place.
+        // Return the matrix so the runner can deep-compare it.
+        return matrix;
+      }
+    testCases:
+      - input: [[[1, 2, 3], [4, 5, 6], [7, 8, 9]]]
+        expected: [[7, 4, 1], [8, 5, 2], [9, 6, 3]]
+      - input: [[[1, 2], [3, 4]]]
+        expected: [[3, 1], [4, 2]]
+      - input: [[[5, 1, 9, 11], [2, 4, 8, 10], [13, 3, 6, 7], [15, 14, 12, 16]]]
+        expected: [[15, 13, 2, 5], [14, 3, 4, 1], [12, 6, 8, 9], [16, 7, 10, 11]]
+      - input: [[[1]]]
+        expected: [[1]]
+  - title: 'Spiral Matrix'
+    leetcodeId: 54
+    difficulty: 'medium'
+    prompt: |
+      Given an m × n matrix of integers, return an array of all its elements in clockwise spiral
+      order, starting from the top-left corner. Keep four boundaries — top, bottom, left, right —
+      and peel one edge per pass: the top row left to right, the right column top to bottom, the
+      bottom row right to left, then the left column bottom to top; tighten the relevant boundary
+      after each edge. Only run the bottom and left passes while a boundary has not crossed. The
+      signature is solution(matrix), where matrix is an array of m rows, each an array of n numbers.
+      Example: [[1,2,3],[4,5,6],[7,8,9]] → [1,2,3,6,9,8,7,4,5].
+    starterCode: |
+      function solution(matrix) {
+        // Plan: top = 0, bottom = rows - 1, left = 0, right = cols - 1.
+        // While top <= bottom && left <= right: read the top edge (left ->
+        // right), right edge (top -> bottom), then if top <= bottom the
+        // bottom edge (right -> left), then if left <= right the left edge
+        // (bottom -> top), tightening one boundary per edge. Empty matrix -> [].
+        const result = [];
+        return result;
+      }
+    testCases:
+      - input: [[[1, 2, 3], [4, 5, 6], [7, 8, 9]]]
+        expected: [1, 2, 3, 6, 9, 8, 7, 4, 5]
+      - input: [[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]]
+        expected: [1, 2, 3, 4, 8, 12, 11, 10, 9, 5, 6, 7]
+      - input: [[[1]]]
+        expected: [1]
+      - input: [[[1, 2], [3, 4]]]
+        expected: [1, 2, 4, 3]
+      - input: [[[1], [2], [3]]]
+        expected: [1, 2, 3]
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './22-matrix-patterns.frames';
+
+<DsaVisualizer title="Peeling the spiral, one edge at a time" frames={frames} client:idle />
+
+## The one question this page answers
+
+Matrices look like two-dimensional monsters, but every matrix problem is just a loop with two
+indices — row and column — and the pain is deciding what each index does next. This page answers one
+question: _can the scariest matrix walks be written as simple loops over cells you can name?_ Yes.
+Rotating a square is the two-step recipe of transpose-then-reverse-rows, and a spiral is the
+boundary-peeling loop the visualizer above runs. Both are tame once you name the coordinates and
+keep the boundaries honest.
+
+## Start with an analogy
+
+A photo album. To rotate a square photo 90°, you do not pick it up and spin it; you mirror it across
+its diagonal — the top-right corner lands where the bottom-right was — and then flip each row like a
+page. Two whole-print moves, every pixel lands exactly once.
+
+The album is a spiral-read journal: you read the cover edges clockwise — top strip left to right,
+right strip down, bottom strip right to left, left strip up — then flip to the next inner page and
+read its edges the same way, until one strip is left.
+
+## Name your cells
+
+A matrix is `matrix[row][column]`: the outer array picks a row, the inner array picks a column. All
+matrix logic — rotations, spirals, transposes — is just choosing which index you fix and which you
+vary, and how far each goes. Write the bounds explicitly (`top`, `bottom`, `left`, `right`, or `i`,
+`j`) and the loop writes itself.
+
+## Rotate Image: transpose, then reverse
+
+To rotate an n × n matrix 90° clockwise in place, without a second grid:
+
+1. **Transpose:** for every `i < j`, swap `matrix[i][j]` and `matrix[j][i]`. This mirrors the matrix
+   across the main diagonal.
+2. **Reverse each row.** The mirror-then-flip composition is exactly a clockwise quarter-turn.
+
+Each cell is swapped once in the transpose and once in its row reverse — O(n²) time, O(1) extra
+space, and no `temp` matrix.
+
+## Spiral Matrix: four boundaries, four edges
+
+The spiral is a loop that keeps shrinking the box you still have to read:
+
+- `top = 0`, `bottom = m - 1`, `left = 0`, `right = n - 1`.
+- Read the top edge `left → right`, then `top++`.
+- Read the right edge `top → bottom`, then `right--`.
+- **If** `top <= bottom`: read the bottom edge `right → left`, then `bottom--`.
+- **If** `left <= right`: read the left edge `bottom → top`, then `left++`.
+- Stop when `top > bottom` or `left > right`.
+
+The two `if` guards are what keep skinny matrices — one row or one column — from double-reading; the
+boundaries make a visited grid unnecessary.
+
+## What this is NOT
+
+| Misconception                                        | Truth                                                                                                                 |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| "Matrix code needs a helper grid"                    | Transpose and spiral both track indices only; a visited grid is extra memory the boundaries already make unnecessary. |
+| "Rotate 90° means rotate each ring separately"       | Ring-by-ring rotation works but is needlessly fiddly; transpose-then-reverse-rows is simpler and equivalent.          |
+| "Spiral order is arbitrary"                          | It is one deterministic path: top edge, right edge, bottom edge, left edge, tightening one boundary per pass.         |
+| "The diagonal participates in every swap"            | In a transpose the diagonal cells (i === j) map to themselves and are skipped; only off-diagonal pairs swap.          |
+| "In-place means the algorithm is automatically fast" | In-place just means O(1) extra space; the time is still O(n²) for rotation because every cell must move.              |
+
+## Why this matters for the rest of the trip
+
+Matrix problems are where index discipline gets tested: off-by-one errors in boundaries silently
+drop or double cells, and the spiral's guards are the same boundary logic used in binary search and
+two-pointers — know when a range is live and when it has crossed. The transpose recipe also powers
+matrix power, image filters, and grid games. Learn to name every cell by (row, column), keep your
+boundaries explicit, and the two-dimensional monsters turn into one-dimensional loops.
+
+Solve the two problems above. Rotate Image is a two-recipe composition; Spiral Matrix is a single
+loop with four shrinking counters. For each, write out the bounds before you write the loop — and
+check the single-row and single-column shapes against your guards.

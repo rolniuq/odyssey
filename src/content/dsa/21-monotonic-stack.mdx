@@ -1,0 +1,267 @@
+---
+order: 21
+title: 'Monotonic stack: answering the nearest hotter day'
+coreConcept:
+  'A monotonic stack is a stack that always stays ordered — here, strictly decreasing from bottom to
+  top. Because every element is pushed once and popped once, problems that look like "for each item,
+  find the nearest bigger/smaller neighbor" collapse from O(n²) to one linear pass.'
+docSource: 'https://www.geeksforgeeks.org/introduction-to-monotonic-stack-2/'
+docTitle: 'Introduction to Monotonic Stack — GeeksforGeeks'
+difficulty: 'advanced'
+objectives:
+  - 'Explain the invariant: a monotonic stack stays ordered, so every push first pops the entries
+    that would break the order'
+  - 'Prove the linear cost: each element enters the stack once and leaves once, so the pops amortize
+    to O(n)'
+  - 'Solve Daily Temperatures: pop on a warmer day and record the wait in days from the popped index
+    to the current one'
+  - 'Solve Largest Rectangle in Histogram: use the stack to find, for every bar, the nearest shorter
+    bar on each side'
+  - 'Distinguish "nearest greater element" problems from "next greater or equal" ones, where the
+    comparison flips from < to ≤'
+quiz:
+  - question: 'What does a monotonic stack guarantee about its contents at every moment?'
+    options:
+      - 'That the stack is always sorted — here strictly decreasing from bottom to top — so the top
+        is always the extreme value among the waiting elements'
+      - 'That the stack is always the same size'
+      - 'That every element in the stack is unique'
+      - 'That the stack never grows past half the array'
+    answerIndex: 0
+    explanation:
+      'The whole trick is the ordering: the bottom holds the biggest (oldest) candidate and the top
+      the smallest (most recent). That makes the top the only place you ever compare against, which
+      is what turns a pairwise scan into a linear walk. The size, the uniqueness of values, and a
+      hard cap are not part of the invariant — the stack can hold any subset of indices, and values
+      may repeat.'
+  - question: 'Why is a monotonic-stack pass O(n) even though it looks like nested work?'
+    options:
+      - 'Because the inner while loop is skipped entirely'
+      - 'Because every element is pushed exactly once and popped at most once — the total number of
+        pops across the whole run is bounded by the number of pushes, which is n'
+      - 'Because the stack is capped at 10 elements'
+      - 'Because each element is compared to at most one other element'
+    answerIndex: 1
+    explanation:
+      'Amortized analysis is the key: each of the n elements enters the stack once and can be removed
+      once, so across the entire algorithm the while loop executes at most n pops total. Even though
+      a single push may pop several elements, those pops are "paid for" by earlier pushes, so the sum
+      of all work is linear. Skipping the loop, capping the stack, and one-comparison claims all
+      describe different (and wrong) algorithms.'
+  - question: 'In Daily Temperatures, what do you record when the current day pops a waiting day?'
+    options:
+      - 'The temperature of the warmer day'
+      - 'The current day index minus the popped day index — the number of days waited until a warmer
+        day arrived'
+      - 'The popped day index plus one'
+      - 'The size of the stack'
+    answerIndex: 1
+    explanation:
+      'The answer for a waiting day is a span, not a temperature: the warmer day is the current one,
+      and the wait is current − popped. The array returns spans, not temperatures, so recording the
+      temperature would break the output; adding one is the off-by-one of "tomorrow counts as one
+      day", which is exactly current − popped; and the stack size has nothing to do with any one
+      answer.'
+  - question: 'What happens to a day still on the stack when the array ends?'
+    options:
+      - 'It gets a span equal to its temperature'
+      - 'It gets a span of 0 — no warmer day ever followed it'
+      - 'It gets popped and paired with the last day'
+      - 'It stays with a span of −1'
+    answerIndex: 1
+    explanation:
+      'A day left on the stack at the end never found a warmer day, so its span is 0. The stack is
+      the set of unanswered days, and when the input runs out there is no one left to answer them.
+      A temperature span, a pairing with the last day, or a −1 sentinel would all change the meaning
+      of the output contract (which expects non-negative spans).'
+  - question: 'Largest Rectangle in Histogram pops a bar when the new bar is shorter. What does the
+    popped bar need to compute its area?'
+    options:
+      - 'Its own height and the distance to the new shorter bar on the right and the next stack entry
+        (or −1) on the left'
+      - 'Its height and the current bar height'
+      - 'The sum of both heights'
+      - 'The current bar height times the stack size'
+    answerIndex: 0
+    explanation:
+      'The popped bar is the limiting factor: the new bar bounds its right extent, and the new top of
+      the stack (the previous shorter bar) bounds its left extent, so width = right − left − 1 and
+      area = height × width. Multiplying heights or using the stack size would double-count or ignore
+      the boundaries, and neither formula describes the rectangle the popped bar can actually span.'
+  - question: 'When does a monotonic stack run in O(n²) despite the invariant?'
+    options:
+      - 'When the input is already sorted'
+      - 'When elements are pushed and popped in a random order'
+      - 'Never, as long as each element is pushed once and each pop removes an element — the cost
+        stays linear regardless of the input'
+      - 'When the stack grows beyond the array length'
+    answerIndex: 2
+    explanation:
+      'The amortized bound does not depend on the input pattern. Whether the values are increasing,
+      decreasing, or random, the stack only ever contains elements that were pushed this pass, and
+      every pop removes one, so total pops ≤ total pushes = n. Sorted input changes which elements
+      pop when, not the total number of pops; a stack cannot exceed the number of elements pushed;
+      and the order of pushes and pops is exactly the algorithm, never a source of extra cost.'
+problems:
+  - title: 'Daily Temperatures'
+    leetcodeId: 739
+    difficulty: 'medium'
+    prompt: |
+      Given an array of daily temperatures, return an array of equal length where the value at
+      index i is the number of days you have to wait after day i until a strictly warmer
+      temperature arrives; if no warmer day ever arrives, the value is 0. Use a monotonic
+      decreasing stack of day indices: while the current temperature is warmer than the one on top,
+      pop and write answer[top] = i - top, then push i. The signature is solution(temperatures).
+      Example: [73,74,75,71,69,72,76,73] → [1,1,4,2,1,1,0,0].
+    starterCode: |
+      function solution(temperatures) {
+        // Plan: a stack of indices whose temperatures stay strictly
+        // decreasing from bottom to top. For each day i, while the top of
+        // the stack is colder than temperatures[i], pop it and answer it:
+        // answer[top] = i - top. Then push i. Days left on the stack at
+        // the end get 0.
+        const answer = new Array(temperatures.length).fill(0);
+        const stack = [];
+        return answer;
+      }
+    testCases:
+      - input: [[73, 74, 75, 71, 69, 72, 76, 73]]
+        expected: [1, 1, 4, 2, 1, 1, 0, 0]
+      - input: [[30, 40, 50, 60]]
+        expected: [1, 1, 1, 0]
+      - input: [[30, 60, 90]]
+        expected: [1, 1, 0]
+      - input: [[80, 79, 78]]
+        expected: [0, 0, 0]
+      - input: [[89, 62, 70, 58, 47, 47, 46, 76, 100, 70]]
+        expected: [8, 1, 5, 4, 3, 2, 1, 1, 0, 0]
+      - input: [[31]]
+        expected: [0]
+  - title: 'Largest Rectangle in Histogram'
+    leetcodeId: 84
+    difficulty: 'hard'
+    prompt: |
+      Given an array of heights of adjacent bars (each 1 unit wide), return the area of the largest
+      rectangle that can be drawn within the bars. The classic trick: push bar indices onto a
+      monotonic increasing stack; when a bar is shorter than the top, pop the top and compute its
+      area as height * (i - leftBound - 1), where leftBound is the new top of the stack or -1 if the
+      stack is empty. The max area wins. The signature is solution(heights).
+      Example: [2,1,5,6,2,3] → 10.
+    starterCode: |
+      function solution(heights) {
+        // Plan: a stack of indices whose heights stay strictly increasing
+        // from bottom to top. When heights[i] is shorter than the top, pop
+        // the top and treat i as its right bound and the new top (or -1)
+        // as its left bound: area = heights[popped] * (i - left - 1).
+        // Sweep to the end, then drain the stack with i = heights.length.
+        let maxArea = 0;
+        const stack = [];
+        return maxArea;
+      }
+    testCases:
+      - input: [[2, 1, 5, 6, 2, 3]]
+        expected: 10
+      - input: [[2, 4]]
+        expected: 4
+      - input: [[2, 1, 2]]
+        expected: 3
+      - input: [[6, 7, 5, 2, 4, 5, 9, 3]]
+        expected: 16
+      - input: [[0]]
+        expected: 0
+      - input: [[5]]
+        expected: 5
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './21-monotonic-stack.frames';
+
+<DsaVisualizer title="Waiting days, answered by one warmer day" frames={frames} client:idle />
+
+## The one question this page answers
+
+For-each problems — "for every element, find the nearest neighbor that is bigger, smaller, hotter,
+shorter" — look quadratic at first glance, because the naive way compares each element against every
+later one. This page answers one question: _can a stack, whose only power is push and pop, answer
+all of those neighbors in a single pass?_ The answer is yes, and the trick is one ordering rule:
+keep the stack strictly decreasing (or increasing), so the top is always the one element worth
+comparing against. That single rule turns "nearest greater element" into a stack that pops when a
+bigger value arrives — and, because each element is pushed and popped once, the whole thing runs in
+linear time.
+
+## Start with an analogy
+
+A climbing queue at a rope wall. Everyone waits in line, and the line is always ordered by skill:
+the strongest climber at the front, the weakest at the back. A new person joins at the back. Anyone
+at the back who is weaker than the newcomer steps out — they now have a stronger climber to follow —
+and the newcomer takes the back spot. The line never grows without order: everyone weaker than the
+new arrival leaves first.
+
+The waiting line is the **monotonic stack**, ordered from strong (bottom) to weak (top). The
+newcomer is the **current element**. The people who step out are the **pops**, and each one, as it
+leaves, learns who outranks it — which is exactly the answer the problem wanted.
+
+## The monotonic stack, defined
+
+A monotonic stack is a stack whose elements always stay in sorted order from bottom to top — here,
+**strictly decreasing** (each top is smaller than the one below). The push procedure enforces it:
+
+1. While the top of the stack is **not in the right order** with the new element (for a decreasing
+   stack: while `top ≤ new`), pop it.
+2. Push the new element.
+
+Because the invariant is restored before every push, the top of the stack is always the smallest
+waiting element — the closest, most recent candidate. That locality is what removes the need to
+scan.
+
+## Daily Temperatures: the near pair, made local
+
+For each day, find the number of days until a strictly warmer day. The stack holds indices of days
+still waiting, ordered so temperatures decrease toward the top. For each day `i`:
+
+- While `temperatures[i] > temperatures[stack.top]`, the warmer day has arrived: pop `top` and write
+  `answer[top] = i - top`.
+- Push `i`.
+
+Days left on the stack at the end never find a warmer day: `0`. The visualizer above runs the whole
+walk on `[73,74,75,71,69,72,76,73]` — watch day 6 (76°) answer three stale days at once, each with a
+different wait.
+
+**Cost:** every index is pushed once and popped at most once, so the pops are O(n) total — the
+algorithm is linear, full stop.
+
+## Largest Rectangle in Histogram: bounds from the neighbors
+
+Now each bar wants its own rectangle, so a bar needs its **nearest shorter bar** on each side. The
+same stack, this time kept increasing, finds both bounds as a side effect of popping:
+
+1. Sweep left to right. When `heights[i]` is **shorter** than the top, the top has found its right
+   bound at `i`; pop it, take the new top (or −1) as the left bound, and compute
+   `area = heights[top] × (i − left − 1)`.
+2. When the sweep ends, drain the stack with `i = heights.length`.
+
+For `[2,1,5,6,2,3]` the max is 10 (the 5-and-6 pair). For `[6,7,5,2,4,5,9,3]` the max is 16 — the
+whole array at height 2. The neighbor-finding pattern is identical to Daily Temperatures; only the
+arithmetic you do at the pop changes.
+
+## What this is NOT
+
+| Misconception                                 | Truth                                                                                                                         |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| "A stack is only for parentheses"             | Stacks encode recency; ordering the contents makes each element answer its nearest relevant neighbor in O(1) amortized time.  |
+| "Monotonic means the stack is sorted once"    | The invariant is restored before every push, so the ordering is guaranteed at every instant, not set up once at the start.    |
+| "Each pop is O(1), so it is O(n) per element" | Each element pops at most once total; the sum of all pops is n, which is what makes the pass linear, not each pop's own cost. |
+| "Daily Temperatures and Histogram differ"     | One algorithm: a monotonic stack of indices that pops when the order breaks; only the pop arithmetic (wait vs area) changes.  |
+| "The stack must store values, not indices"    | Storing indices lets you compute spans (i − top); storing only values loses the positions every answer needs.                 |
+
+## Why this matters for the rest of the trip
+
+The monotonic stack is the "nearest neighbor in one pass" machine — it reappears in trapping rain
+water, the stock span, next greater element in circular arrays, and sliding-window-maximum variants.
+The habit it teaches is the deepest one in this track: find the invariant that makes a pairwise
+comparison local, and the quadratic fear evaporates. When you see "nearest bigger / nearest
+smaller," reach for a stack that stays ordered and ask what each pop learns as it leaves.
+
+Solve the two problems above. Daily Temperatures is the pure nearest-warmer form; Largest Rectangle
+asks the same stack to report each bar's horizontal bounds. Make sure you can say, for a popped bar,
+exactly which two indices bound its rectangle and why.
