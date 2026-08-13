@@ -1,0 +1,200 @@
+---
+order: 2
+title: 'Two Pointers, one pass'
+coreConcept:
+  'Two pointers can turn a nested-loop scan into a single O(n) pass — each pointer move rules out a
+  whole class of candidates at once.'
+docSource: 'https://www.geeksforgeeks.org/two-pointers-technique/'
+docTitle: 'Two Pointers Technique — GeeksforGeeks'
+difficulty: 'beginner'
+objectives:
+  - 'Recognize the two-pointer setup: one index from each end, closing in'
+  - 'Write a two-pointer solution that runs in O(n) time and O(1) extra space'
+  - 'Explain why dropping an element by moving a pointer is never a mistake'
+quiz:
+  - question: 'What is the signature win of the two-pointer trick?'
+    options:
+      - 'Running the loop twice, once with each pointer'
+      - 'Each step skips an entire group of candidates, so the pass costs O(n) instead of O(n²)'
+      - 'Keeping two copies of the input so you can compare them safely'
+      - 'Using a hash map to remember where each pointer stopped'
+    answerIndex: 1
+    explanation:
+      'The win is not "two loops". It is that a pointer move eliminates many candidates at once —
+      the array is sorted (or symmetric), so everything past that index is also out. That is what
+      collapses the complexity.'
+  - question: 'In Valid Palindrome, where do the two pointers start?'
+    options:
+      - 'Both in the middle, moving outward'
+      - 'One at the first character and one at the last, moving toward each other'
+      - 'At the start of the string, searching for vowels'
+      - 'One in a hash map, comparing letter counts'
+    answerIndex: 1
+    explanation:
+      'A palindrome is symmetric: mirror characters must match. Put one pointer at index 0 and the
+      other at the last index, walk them inward, and stop when they meet or cross.'
+  - question: 'When a two-pointer comparison fails (mirror characters differ), what do you know?'
+    options:
+      - 'The reversed string is somehow still equal'
+      - 'The rest of the scan is still worth doing'
+      - 'The string is NOT a palindrome — the very first mismatch proves it'
+      - 'You need to swap in a third pointer'
+    answerIndex: 2
+    explanation:
+      'Every palindrome must match ALL mirror pairs. The first pair that differs proves the whole
+      claim false, so you can stop immediately for O(n) worst case.'
+  - question: 'Two Sum II (sorted input) — when the current sum is too big, which pointer moves?'
+    options:
+      - 'The left one moves right'
+      - 'The right one moves left'
+      - 'Both move inward together'
+      - 'Neither — you have to restart'
+    answerIndex: 1
+    explanation:
+      'Sorted ascending, so the right end holds the biggest value. If the sum overshoots the target,
+      every pair using the current right value is also too big — moving right in is safe and
+      necessary.'
+  - question: 'Why does the two-pointer approach use O(1) extra space?'
+    options:
+      - 'Because it allocates one array per pointer'
+      - 'Because it only stores two indices, not copies of the data'
+      - 'Because it sorts the array first'
+      - 'Because it builds a hash map of size n'
+    answerIndex: 1
+    explanation:
+      'Two integers (left, right) — nothing else. You read the array in place and never allocate
+      data structures, so space stays constant regardless of input size.'
+  - question:
+      "For Valid Palindrome, the phrase 'ignore case and non-alphanumerics' means the pointers…"
+    options:
+      - 'pre-process the whole string once and then scan it'
+      - 'skip over characters that are not letters/digits as they move, comparing the rest lowecased'
+      - 'move in hash-map order'
+      - 'only scan even-length substrings'
+    answerIndex: 1
+    explanation:
+      'Pre-processing is an option, but skipping inline keeps it one pass and O(1) space: while a
+      character is not alphanumeric, move that pointer past it before comparing.'
+  - question: 'The middle character of an odd-length palindrome…'
+    options:
+      - 'must match its own mirror, which is itself — so it is trivially fine'
+      - 'must be removed before comparing'
+      - 'disproves the palindrome'
+      - 'forces the whole algorithm to O(n²)'
+    answerIndex: 0
+    explanation:
+      'Once the pointers cross, every pair has matched. The leftover middle character has no
+      partner, so it needs no check at all — the loop simply ends when left > right.'
+  - question: 'Which real-world shape does the two-pointer idea most resemble?'
+    options:
+      - 'Nested loops remade as one loop'
+      - 'Walking toward a friend from opposite ends of a street so you always shrink the gap'
+      - 'Sorting a deck of cards by hand'
+      - 'Building a hash table'
+    answerIndex: 1
+    explanation:
+      'Every step either lowers the right end or raises the left end, so the "distance" strictly
+      shrinks — exactly like two people closing a gap. That shrinking invariant is the whole trick.'
+problems:
+  - title: 'Valid Palindrome'
+    leetcodeId: 125
+    difficulty: 'easy'
+    prompt: |
+      Given a string s, return true if it is a palindrome, or false otherwise.
+      Ignore case and skip over all non-alphanumeric characters (only letters and digits count).
+      Examples: "A man, a plan, a canal: Panama" → true; "race a car" → false.
+    starterCode: |
+      function solution(s) {
+        // two pointers from the ends; skip non-alphanumerics; compare lowercased.
+        // when the pointers cross, every mirror pair matched.
+        return true;
+      }
+    testCases:
+      - input: ['A man, a plan, a canal: Panama']
+        expected: true
+      - input: ['race a car']
+        expected: false
+      - input: [' ']
+        expected: true
+      - input: ['Never odd or even']
+        expected: true
+  - title: 'Two Sum II — Input Array Is Sorted'
+    leetcodeId: 167
+    difficulty: 'medium'
+    prompt: |
+      Given a 1-indexed sorted array of integers numbers and a target, return the indices
+      [leftIndex, rightIndex] of the two numbers that add up to target. Each input has exactly
+      one solution and you may not use the same element twice.
+      Examples: [2,7,11,15], target 9 → [1,2]; [-1,0], target -1 → [1,2].
+    starterCode: |
+      function solution(numbers, target) {
+        // left and right at the ends; sum too big => move right in,
+        // sum too small => move left up; else return the 1-indexed pair.
+        return [0, 0];
+      }
+    testCases:
+      - input: [[2, 7, 11, 15], 9]
+        expected: [1, 2]
+      - input: [[2, 3, 4], 6]
+        expected: [1, 3]
+      - input: [[-1, 0], -1]
+        expected: [1, 2]
+      - input: [[1, 2, 3, 4, 10], 14]
+        expected: [4, 5]
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './02-two-pointers.frames';
+
+<DsaVisualizer title="Two pointers, slow motion" frames={frames} client:idle />
+
+## The one question this page answers
+
+Nested loops feel like the obvious way to scan an array twice: for each `i`, check every `j`. That
+costs **O(n²)**. The two-pointer trick asks a sharper question: _can one pass, using two indices, do
+the same job?_ For a huge class of problems the answer is yes — and the cost drops to **O(n)**.
+
+## Start with an analogy
+
+Two friends stand at opposite ends of a long street and want to meet. There is no phone, so their
+rule is simple: _at every step, at least one of you moves one house closer to the middle._ The gap
+strictly shrinks every step — they never walk back out, and they meet in at most `n` moves.
+
+The array is the street. `left` and `right` are the friends. The rule "always shrink the gap" is the
+invariant that makes the whole pass linear: `n` possible moves, no more.
+
+## The two setups, honestly
+
+### Both ends, closing in
+
+Sorted array (or a problem that is symmetric), so you can compare `numbers[left] + numbers[right]`
+against a target. If the sum is **too big**, every pair using the current `right` is too big — move
+`right` left. If **too small**, every pair using the current `left` is too small — move `left`
+right.
+
+The catch: this only works when the array is sorted (or the comparison is monotonic in the pointer
+positions). Without that ordering, moving a pointer does not safely rule anything out.
+
+### One end, moving together
+
+Both pointers start at `0` and `right` runs ahead, keeping a window between them (a **sliding
+window** — Day 3). Same DNA: each step shrinks or slides the window and skips work. If you grasp
+"one pass, two indices, always shrink the gap", sliding window is a free upgrade.
+
+## What this is NOT
+
+| Misconception                                    | Truth                                                                                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| "Two pointers literally means running two loops" | It means _one_ loop maintaining two indices; the trick is the shrinking invariant, not a second pass.                          |
+| "It works on any array"                          | It demands an ordering that lets a pointer move safely rule out candidates — sorted arrays, palindromes, monotone comparisons. |
+| "Each step compares two random elements"         | Each step deliberately discards the whole region behind the moved pointer; that discard is what buys O(n).                     |
+
+## Why this matters for the rest of the trip
+
+Sliding window (Day 3) is two pointers with a moving right edge. Merge-style algorithms and many
+linked-list tricks reuse the same "two walkers" mental model. And when you meet problems like
+_Container With Most Water_ or _3Sum_, the reflex "can two pointers discard a region per step?" is
+exactly what turns O(n²) intuition into O(n) code.
+
+Solve the two problems above before moving on — then go further on LeetCode (sort the array first,
+then the two-pointer intuition falls into place).
