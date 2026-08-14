@@ -1,0 +1,161 @@
+---
+{
+  "order": 8,
+  "title": "Ordering and Limiting Results",
+  "coreConcept": "PostgreSQL tables are unordered collections of rows; you must explicitly sort them using ORDER BY before applying a LIMIT to get a predictable subset.",
+  "docSource": "https://www.postgresql.org/docs/current/queries-order.html",
+  "docTitle": "ORDER BY and LIMIT",
+  "difficulty": "beginner",
+  "objectives": ["Explain why PostgreSQL does not guarantee row order without an explicit ORDER BY clause","Apply ORDER BY with ASC, DESC, and NULLS positioning to sort query results","Combine LIMIT and OFFSET to paginate query results safely and predictably"],
+  "quiz": [
+  { "question": "In the opening analogy of the book pile, what does grabbing five random books from an unsorted pile represent in PostgreSQL?",
+    "options": ["Running a SELECT query with a LIMIT clause but no ORDER BY clause.","Creating a table without a primary key.","Deleting rows without a WHERE clause.","Sorting a table using an index."],
+    "answerIndex": 0,
+    "explanation": "Without an ORDER BY clause, PostgreSQL returns rows in an unpredictable order. Applying a LIMIT without sorting is like grabbing random books from a chaotic pile; the returned subset is non-deterministic." },
+  { "question": "Why does PostgreSQL NOT guarantee a default sorting order when you run a simple SELECT query?",
+    "options": ["Because PostgreSQL automatically sorts rows by their primary key in descending order.","Because tables are stored as unordered collections of tuples, and factors like MVCC updates and disk layout affect retrieval order.","Because the SQL standard requires all database engines to randomize output unless a seed is provided.","Because the query planner always sorts rows alphabetically by the first column to save memory."],
+    "answerIndex": 1,
+    "explanation": "PostgreSQL stores rows as unordered tuples. Physical disk layout, sequential scans, and MVCC (which writes new row versions during updates) mean the retrieval order is arbitrary and non-deterministic unless an explicit ORDER BY is used." },
+  { "question": "In the hands-on walkthrough, what clause was added to the ORDER BY rating DESC query to ensure that the book with a NULL rating did not appear at the very top of the descending list?",
+    "options": ["IGNORE NULLS","NULLS LAST","WHERE rating IS NOT NULL","NULLS FIRST"],
+    "answerIndex": 1,
+    "explanation": "In PostgreSQL, NULL values are treated as larger than any non-null value. When sorting descending (DESC), NULLs appear first by default. Adding NULLS LAST forces them to the end of the sorted list." },
+  { "question": "Based on the \"What this is NOT\" section, what is a common misconception about how the OFFSET clause works?",
+    "options": ["People think it permanently deletes the skipped rows from the table.","People think it can only be used with text columns, not numeric columns.","People think it efficiently jumps directly to the target row without reading or sorting the skipped rows.","People think it forces the query planner to bypass the WHERE clause."],
+    "answerIndex": 2,
+    "explanation": "A common misconception is that OFFSET is a high-performance jump. In reality, PostgreSQL must still scan, filter, and sort the skipped rows before discarding them, which makes large offsets highly inefficient." },
+  { "question": "According to the execution pipeline described in \"The diagram matters\", in what order does PostgreSQL apply these operations?",
+    "options": ["LIMIT/OFFSET first, then WHERE filtering, and finally ORDER BY sorting.","ORDER BY sorting first, then LIMIT/OFFSET, and finally WHERE filtering.","WHERE filtering first, then ORDER BY sorting, and finally LIMIT/OFFSET.","PostgreSQL processes all three simultaneously in a single parallel step."],
+    "answerIndex": 2,
+    "explanation": "PostgreSQL first filters rows using the WHERE clause, then sorts the remaining rows using ORDER BY, and finally applies LIMIT and OFFSET to the sorted subset before returning it to the client." },
+  { "question": "The official PostgreSQL documentation page linked at the end of the lesson is titled what?",
+    "options": ["Sorting Rows (ORDER BY)","Limiting Query Results","ORDER BY and LIMIT","Optimizing Sort Operations"],
+    "answerIndex": 2,
+    "explanation": "The official documentation page is titled \"ORDER BY and LIMIT\" and can be found at the provided URL." }
+  ]
+}
+---
+
+Imagine you are a librarian with a large, unsorted pile of returned books on a table. If someone asks you to "give me five books," you will grab whichever five are closest to your hand; the result is completely unpredictable and changes every time you do it. If they want the five *oldest* books, you must first line up all the books chronologically along the shelf, and only then count out the first five from the left. In database terms, retrieving data without a specified order is like grabbing from that chaotic pile. To get a reliable, predictable subset, you must first establish a strict sorting rule, and only then count out your cut-off point.
+
+## The precise version
+
+In PostgreSQL, a table is stored as an unordered collection of tuples (rows) on disk within physical pages. Without an explicit `ORDER BY` clause, the PostgreSQL query planner does not guarantee any specific order when returning rows from a `SELECT` statement. The returned order often depends on the physical layout of the rows on disk, sequential scan mechanics, or which rows were recently updated (due to MVCC writing new row versions).
+
+To enforce a deterministic order, we use the `ORDER BY` clause, which instructs the execution engine to sort the result set based on one or more expressions (columns, calculations, or column aliases). Sorting can be ascending (`ASC`, the default) or descending (`DESC`). We can also control where null values appear using `NULLS FIRST` or `NULLS LAST`.
+
+Once sorted, the `LIMIT` clause restricts the number of rows returned to the client process. The optional `OFFSET` clause skips a specified number of rows before returning the rest. However, using `LIMIT` without `ORDER BY` is a critical anti-pattern because the subset of rows returned is non-deterministic—PostgreSQL will return the first N rows it happens to process, which can change between query executions.
+
+## Hands-on walkthrough
+
+Let's create a table of books with publication years and ratings to see this in action.
+
+```sql
+-- Create a table for our library
+CREATE TABLE books (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    pub_year INT NOT NULL,
+    rating NUMERIC(3,1)
+);
+
+-- Insert sample data
+INSERT INTO books (title, pub_year, rating) VALUES
+('The Great Gatsby', 1925, 4.2),
+('To Kill a Mockingbird', 1960, 4.8),
+('1984', 1949, 4.6),
+('Moby Dick', 1851, 3.8),
+('The Catcher in the Rye', 1951, NULL),
+('Brave New World', 1932, 4.5);
+```
+
+Now, let's run a query without `ORDER BY` to see how unpredictable it is (it usually matches insertion order initially, but we cannot rely on this):
+
+```sql
+SELECT title, pub_year FROM books;
+```
+
+Expected Output:
+```text
+         title          | pub_year
+------------------------+----------
+ The Great Gatsby       |     1925
+ To Kill a Mockingbird  |     1960
+ 1984                   |     1949
+ Moby Dick              |     1851
+ The Catcher in the Rye |     1951
+ Brave New World        |     1932
+(6 rows)
+```
+
+Let's sort the books by publication year in ascending order:
+
+```sql
+SELECT title, pub_year FROM books ORDER BY pub_year ASC;
+```
+
+Expected Output:
+```text
+         title          | pub_year
+------------------------+----------
+ Moby Dick              |     1851
+ The Great Gatsby       |     1925
+ Brave New World        |     1932
+ 1984                   |     1949
+ The Catcher in the Rye |     1951
+ To Kill a Mockingbird  |     1960
+(6 rows)
+```
+
+Now, let's find the top 3 highest-rated books. We will sort by `rating DESC` and use `LIMIT 3`. Note how we handle the `NULL` rating:
+
+```sql
+SELECT title, rating FROM books ORDER BY rating DESC NULLS LAST LIMIT 3;
+```
+
+Expected Output:
+```text
+         title          | rating
+------------------------+--------
+ To Kill a Mockingbird  |    4.8
+ 1984                   |    4.6
+ Brave New World        |    4.5
+(3 rows)
+```
+
+If we want to skip the top 2 and get the 3rd and 4th highest-rated books, we use `OFFSET 2 LIMIT 2`:
+
+```sql
+SELECT title, rating FROM books ORDER BY rating DESC NULLS LAST LIMIT 2 OFFSET 2;
+```
+
+Expected Output:
+```text
+      title      | rating
+-----------------+--------
+ Brave New World |    4.5
+ The Great Gatsby|    4.2
+(2 rows)
+```
+
+## What this is NOT
+
+| Concept | What it actually does | What people mistakenly think it does |
+| :--- | :--- | :--- |
+| `LIMIT` | Restricts the final size of the returned result set transmitted to the client. | Prevents PostgreSQL from scanning or processing more rows than the limit value. |
+| `ORDER BY` | Sorts the output of the current query dynamically during execution. | Permanently reorders the physical layout of the rows stored on the hard drive. |
+| `OFFSET` | Skips the first N rows of the sorted result set before returning data. | Efficiently jumps directly to row N without reading or sorting the skipped rows. |
+
+## The diagram matters
+
+Understanding the sequence of execution is vital. When PostgreSQL processes a query containing `WHERE`, `ORDER BY`, and `LIMIT`, it does not apply them all at once.
+
+{/* DIAGRAM: Show a pipeline where raw table data flows through a WHERE filter, then into a sorting node (ORDER BY), and finally through a gatekeeper (LIMIT/OFFSET) before reaching the client. */}
+
+First, the server filters the rows using the `WHERE` clause. Second, it takes the matching rows and sorts them in memory (or on disk if the dataset is larger than `work_mem`). Finally, it applies the `LIMIT` and `OFFSET` constraints to discard unwanted rows before sending the final payload to the client.
+
+If you do not understand this pipeline, you might write inefficient queries. For instance, using a large `OFFSET` (e.g., `OFFSET 1000000`) forces PostgreSQL to still fetch, filter, and sort all one million rows, only to throw them away at the very last second. Mastering this order of operations unlocks the ability to build high-performance pagination and index-backed sorting.
+
+## Read the official docs
+
+To dive deeper into the mechanics of sorting, null ordering, and the performance implications of pagination, read the official PostgreSQL documentation on [ORDER BY and LIMIT](https://www.postgresql.org/docs/current/queries-order.html).
