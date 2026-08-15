@@ -1,0 +1,257 @@
+---
+order: 8
+title: 'Binary Trees'
+coreConcept:
+  'A binary tree is a node with a value and (up to) two smaller subtrees — a recursive shape in
+  which each node answers two questions: left subtree and right subtree. Working on trees is working
+  on a node plus two smaller trees, recursively.'
+docSource: 'https://en.wikipedia.org/wiki/Binary_tree'
+docTitle: 'Binary tree — Wikipedia'
+difficulty: 'intermediate'
+objectives:
+  - 'Read and build a binary tree from its level-order array, where null marks a missing child'
+  - 'Recursively walk a tree: a base case at null, a recursive case on each child'
+  - 'See that whole-tree jobs (invert, depth) are each "do this at a node, recurse into children"'
+quiz:
+  - question: 'What is a binary tree, operationally?'
+    options:
+      - 'A row of values with two pointers each, all on the same level'
+      - 'A node holding a value, plus a left child and a right child, each child itself a binary
+        tree (or null). The null children are the base cases'
+      - 'Any structure with exactly two values per position'
+      - 'A sorted array disguised as boxes'
+    answerIndex: 1
+    explanation:
+      'The definition is self-referential on purpose: a tree is a value plus at most two smaller
+      trees. Those smaller trees are the same kind of object, which is why recursion is the natural
+      engine. It is not a flat row, not a pair of numbers, and nothing about ordering is required.'
+  - question: 'In the level-order array [3,9,20,null,null,15,7], what do the nulls mean?'
+    options:
+      - 'The tree has exactly two missing nodes, so it is invalid'
+      - 'Node 9 has no children — slots are filled left to right per level, so null marks an absent
+        child and its own children are skipped'
+      - 'The values 9 and 20 have nulls as ancestors'
+      - 'nulls are sentinels that terminate the array'
+    answerIndex: 1
+    explanation:
+      'The array is read level by level: 3 is the root, its children are 9 and 20; 9 lists null,null
+      (no children), then 20 lists 15,7. A null means that slot holds nothing — and, crucially, no
+      real children can follow it at that level, which is why the next index after it belongs to an
+      earlier node again.'
+  - question:
+      'A recursive depth function returns 1 + max(depth(left), depth(right)). When does it return
+      anything for an empty tree?'
+    options:
+      - 'It never gets called on null'
+      - 'Depth(null) = 0 by definition — the empty tree contributes zero levels, so the recursion
+        naturally bottoms out there'
+      - 'Depth(null) = 1 because a missing child counts as a level'
+      - 'It returns a sentinel error code'
+    answerIndex: 1
+    explanation:
+      'The base case is contractual: no node, no level, returns 0. That single ruling makes the +1 +
+      max pattern correct at every parent — the parent adds one for itself on top of whatever its
+      children reported. Counting null as 1 would inflate every height by one.'
+  - question: 'How do you invert a binary tree?'
+    options:
+      - 'Sort every level so the largest value sits first'
+      - 'Swap each node.left with node.right, then recurse into both — the mirror-image rule at
+        every node is the entire algorithm'
+      - 'Rebuild the tree from its preorder traversal'
+      - 'Reverse the level-order array element-wise'
+    answerIndex: 1
+    explanation:
+      'Inversion is defined recursively and so computed recursively: flip the two pointers of the
+      current node, then invert each child. Reversing a level-order array does not recover the
+      mirror — child placement, not value order, is what changes. Sorting and rebuilding are
+      unrelated operations on different data.'
+  - question: 'Why can a tree traversal never be a flat left-to-right list walk?'
+    options:
+      - 'Because trees forbid loops, so walking must jump levels'
+      - 'Because the next node is not a sibling in memory — it lives down a left or right branch,
+        and only a recursion (or an explicit stack/queue) remembers how to come back'
+      - 'Because values must stay sorted'
+      - 'Because arrays cannot hold nested data'
+    answerIndex: 1
+    explanation:
+      'The tree hides meeting points: after finishing a left branch you must return to the parent to
+      take the right one. Recursion gives you that return trip for free via the call stack; a flat
+      loop would need to keep its own stack or queue. The shape, not the size, is why.'
+  - question:
+      'A "full" binary tree where every node has 0 or 2 children and every level is fully packed has
+      how many nodes at depth d?'
+    options:
+      - 'Exactly d nodes'
+      - '2 raised to the d'
+      - 'd-squared nodes'
+      - 'A constant independent of d'
+    answerIndex: 1
+    explanation:
+      'Each level doubles the count: 1, 2, 4, 8, … every node at depth d has exactly two children,
+      so depth d carries 2^d nodes. That exponential is why rich trees stay shallow — a log-n-height
+      tree can hold exponentially many nodes, which is where balanced trees get their speed.'
+  - question: 'What shape of tree makes a depth traversal worst-case?'
+    options:
+      - 'A balanced tree, because every level is full'
+      - 'A degenerate tree, where every node has exactly one child and the recursion goes n deep'
+      - 'A tree with no nulls'
+      - 'A single-node tree'
+    answerIndex: 1
+    explanation:
+      'Walking a tree costs one frame per level. A degenerate (skewed) tree is a linked list in
+      disguise — n nodes, depth n — so recursion consumes n stack frames, the worst case for depth
+      and stack pressure. Fullness is irrelevant; chain-ness is what hurts.'
+  - question:
+      'How does building a tree from [3,9,20,null,null,15,7] recover 20 as having children 15 and 7?'
+    options:
+      - 'Children are claimed in order as each node is read: the next two non-null slots always
+        belong to the current node, skipping past nulls'
+      - 'Nulls are ignored entirely and the rest are matched pairwise'
+      - 'Every node after the root is a child of 3'
+      - 'Children are found by sorting values by size'
+    answerIndex: 0
+    explanation:
+      'Reading level by level, you consume two child slots per node visited. The catch is null
+      parents: their slot also holds two (virtual) children that must be skipped, which is exactly
+      why after 9s nulls the next values still drift to 20. Index arithmetic on the level-order
+      array encodes this skip precisely.'
+problems:
+  - title: 'Invert Binary Tree'
+    leetcodeId: 226
+    difficulty: 'easy'
+    prompt: |
+      Given the level-order array of a binary tree (null marks a missing child), return the
+      level-order array of the mirrored tree — every node's left and right subtrees swapped. The
+      sandbox has no TreeNode class, so build the tree from the array first, invert it by swapping
+      each node's children recursively, then serialize the result back to a level-order array.
+      Examples: [4,2,7,1,3,6,9] -> [4,7,2,9,6,3,1]; [] -> [].
+    starterCode: |
+      function solution(values) {
+        // Plan: build nodes from values (level order, two child slots per
+        // node). invert(node): swap node.left and node.right, then invert
+        // each child. The base case is a null node. Finally serialize the
+        // tree back to a level-order array (BFS, dropping trailing nulls).
+        return [];
+      }
+    testCases:
+      - input: [[4, 2, 7, 1, 3, 6, 9]]
+        expected: [4, 7, 2, 9, 6, 3, 1]
+      - input: [[2, 1, 3]]
+        expected: [2, 3, 1]
+      - input: [[1, null, 2]]
+        expected: [1, 2]
+      - input: [[]]
+        expected: []
+      - input: [[1]]
+        expected: [1]
+  - title: 'Maximum Depth of Binary Tree'
+    leetcodeId: 104
+    difficulty: 'easy'
+    prompt: |
+      Given the level-order array of a binary tree (null marks a missing child), return its maximum
+      depth: the number of nodes along the longest path from the root down to a leaf. Build the tree
+      from the array, then compute depth recursively: depth(null) = 0 and depth(node) = 1 +
+      max(depth(left), depth(right)).
+      Examples: [3,9,20,null,null,15,7] -> 3; [] -> 0.
+    starterCode: |
+      function solution(values) {
+        // Plan: build nodes from values, then depth(node):
+        //   null -> 0; otherwise 1 + max(depth(left), depth(right)).
+        // The single-node tree has depth 1, the empty tree depth 0.
+        return 0;
+      }
+    testCases:
+      - input: [[3, 9, 20, null, null, 15, 7]]
+        expected: 3
+      - input: [[1, null, 2]]
+        expected: 2
+      - input: [[]]
+        expected: 0
+      - input: [[1]]
+        expected: 1
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './08-binary-trees.frames';
+
+<DsaVisualizer title="Mirror, mirror, recursively" frames={frames} client:idle />
+
+## The one question this page answers
+
+Lists had one arrow per node and were walked in a line. A binary tree gives every node **two**
+arrows — left and right — so the "line" becomes a folding structure, and the question becomes: _how
+do you describe work over a whole tree, when the tree itself is described as "a node plus two
+smaller trees"?_ The answer: recursively, with the null children as the exit doors.
+
+## Start with an analogy
+
+A family tree drawn upside down: one person at the top (the root), and beneath them two slots for
+children, each of whom has two more, and so on. "Count how many people are in this family" is a
+question you answer by asking each child to count their own branch and adding yourself. Nobody
+counts the whole tree at once — every person counts their little triangle and reports up.
+
+That is the recursive mindset: fish in the shape of the data structure.
+
+## Read a tree from an array
+
+Since the sandbox has no tree class, the problems hand you the tree as a **level-order array**:
+`[3, 9, 20, null, null, 15, 7]` means root `3`, children `9` and `20`; `9` has two missing children
+(the `null, null`); `20` has `15` and `7` as children. Reading order is level by level, left to
+right, and `null` fills an absent slot — so its would-be children are skipped in the same pass.
+
+Building it back is index discipline: claim the next two slots as children of each node in order.
+When a node is null, its two slots are still consumed — which is why, after `9` and its two nulls,
+the values `15, 7` land under `20`, not under `9`.
+
+## The recursive contract for trees
+
+Every tree operation follows the same two-part rhythm:
+
+1. **Base case:** the node is `null` — no value, no children, answer is trivial (0, or "nothing
+   here").
+2. **Recursive case:** solve it for the left subtree and the right subtree, then combine with what
+   the current node contributes.
+
+### Depth: 1 + the best child
+
+Maximum depth is the canonical case. `depth(null) = 0`. For a real node, the answer is "one for
+myself, plus the deeper of my two children":
+
+```
+depth(node) = 1 + max(depth(node.left), depth(node.right))
+```
+
+It bottoms out at the leaves: a leaf reports max(0, 0) + 1 = 1, its parent reports 2, and the number
+that surfaces at the root is exactly the number of levels.
+
+### Invert: swap left and right, then recurse
+
+Inversion is the same rhythm with a swap in the middle:
+
+1. If the node is null, do nothing.
+2. Swap `node.left` and `node.right`.
+3. Invert both children — that is, recurse.
+
+Because the rule is applied at every node, the whole tree becomes its mirror image; the diagram
+above walks the level-by-level swap. Notice the "What this is NOT" warning: reversing the level
+order array would give different, wrong trees — child placement is what changes, not the sequence of
+values.
+
+## What this is NOT
+
+| Misconception                                | Truth                                                                                                                        |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| "A tree is just a sorted list with branches" | Nothing is sorted unless you enforce a binary-search invariant; branches change which neighbors a node has, not an ordering. |
+| "Inversion means reversing the array"        | Inversion swaps subtrees through a recursion; array-reversal scrambles positions and yields wrong mirrors.                   |
+| "Depth counts edges"                         | As defined here it counts nodes along the path (LeetCode convention); being crisp about nodes vs edges prevents off-by-ones. |
+| "Every node must have two children"          | A node may have 0, 1, or 2; nulls are legitimate, and a one-child (degenerate) chain is just a linked list in disguise.      |
+
+## Why this matters for the rest of the trip
+
+Day 9 turns from "operate on the tree" to "visit the tree in an order" — preorder, inorder, and the
+queue-driven level order — reusing this exact recursive skeleton three times. And balanced trees — a
+full binary tree of depth d holds up to 2^d nodes, so height stays logarithmic while capacity
+explodes — are the reason binary search learned last week can achieve O(log n).
+
+Solve the two problems above — then represent the inverted tree yourself as a level-order array and
+check your output against the judge's expected shapes.

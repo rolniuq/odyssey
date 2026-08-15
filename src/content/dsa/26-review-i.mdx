@@ -1,0 +1,326 @@
+---
+order: 26
+title: 'Review I: two pointers and sliding window under pressure'
+coreConcept:
+  'A review day with no new concept. Two of the earliest tools — the two-pointer scan and the
+  sliding window — get pushed to their limits, and the shrinking invariant that made Day 2 linear
+  turns out to be the whole engine of both 3Sum and Minimum Window Substring.'
+docSource: 'https://www.geeksforgeeks.org/sliding-window-technique/'
+docTitle: 'Sliding Window Technique — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Recall the two-pointer invariant — each move discards a whole region — and see it run inside
+    3Sum'
+  - 'Recall the sliding-window push-pull — grow until valid, shrink while valid — and apply it to
+    Minimum Window Substring'
+  - 'Dedup correctly in 3Sum: skip repeated first elements and skip repeated pair values after each
+    match'
+  - 'Track window validity with a satisfied-count over distinct letters so the check stays O(1)'
+  - 'Reclassify the two tools by their motion: closing-in pointers versus a window whose edges both
+    advance'
+quiz:
+  - question: 'What does a sliding-window pass do that a nested loop does not?'
+    options:
+      - 'Compare every pair of characters exactly once'
+      - 'Each right-edge push and left-edge pop touches every index a constant number of times, so
+        the whole scan costs O(n) instead of O(n²)'
+      - 'It sorts the string before scanning'
+      - 'It keeps two hash maps so no comparison is needed'
+    answerIndex: 1
+    explanation:
+      'A window is not a fixed frame: every index enters through the right edge and leaves through
+      the left edge at most once, so the total work is a bounded number of moves regardless of how
+      many substrings exist. A nested loop revisits every start/end pairing, which is O(n²) work.
+      No sorting happens, and one count map suffices — the second map is a distraction.'
+  - question: 'In Minimum Window Substring, when is it safe to move the left edge (shrink)?'
+    options:
+      - 'Whenever the window is longer than the current best'
+      - 'Only while the window still contains every character t requires, including duplicates'
+      - 'Whenever the right edge has not moved yet'
+      - 'After sorting s'
+    answerIndex: 1
+    explanation:
+      'Shrinking only helps if it yields a shorter window that is still valid. The instant a needed
+      character drops below its required count the window is invalid and shrinking must stop — a
+      tiny window that misses a letter is worthless. Length alone is not the test, and sorting a
+      string has no place in a window problem.'
+  - question: 'In 3Sum, after sorting, why is a two-pointer pair scan enough instead of three nested
+    loops?'
+    options:
+      - 'Because sorted input lets a pointer move based on whether the current sum is too small or
+        too big, discarding a whole region with each step'
+      - 'Because arrays are guaranteed to be tiny'
+      - 'Because only the first matching triplet is needed'
+      - 'Because the hash map performs the third loop'
+    answerIndex: 0
+    explanation:
+      'With the array sorted, a fixed first element leaves the other two to close in: a sum too
+      small moves the left pointer right, a sum too big moves the right pointer left. Every move
+      rules out every pair through that index, so the inner scan is O(n) instead of O(n²). Without
+      the ordering, moving a pointer would prove nothing — that is the Day 2 lesson returning under
+      pressure.'
+  - question: 'Why must 3Sum skip duplicate first elements?'
+    options:
+      - 'Because duplicates always make the answer empty'
+      - 'Because two identical first elements would regenerate the same triplets twice, and the
+        result must contain unique triplets only'
+      - 'Because duplicates make the sort slower'
+      - 'Because duplicates break the hash map lookup'
+    answerIndex: 1
+    explanation:
+      'The contract is unique triplets. If -1 appears twice, solving for the second -1 rebuilds
+      every triplet the first -1 already produced. Skipping duplicate first elements — and skipping
+      duplicate lo/hi values after each match — is the dedup rule. Duplicates never change a sum and
+      never invalidate a result; they only risk repetition.'
+  - question: 'Which motion does each problem use?'
+    options:
+      - '3Sum uses closing-in pointers around a fixed first element; Minimum Window Substring slides
+        a window whose two edges both advance'
+      - 'Both use nested loops'
+      - 'Both sort their input first'
+      - 'Neither problem uses pointers'
+    answerIndex: 0
+    explanation:
+      'In 3Sum the left and right pointers move toward each other inside one fixed prefix — closing
+      in, never advancing together. In Minimum Window both edges advance monotonically, the left
+      chasing the right, so the covered region slides. Same two-pointer DNA from Day 2, different
+      motion — which is exactly why this review pairs the problems.'
+  - question: 'In Minimum Window, what does the satisfied-count over distinct letters actually
+    track?'
+    options:
+      - 'The total number of characters seen so far'
+      - 'How many distinct letters of t currently appear in the window with at least their required
+        frequency'
+      - 'The current window length'
+      - 'How many letters are missing from t'
+    answerIndex: 1
+    explanation:
+      'The trick that keeps validity checks O(1): the count increments only when a character reaches
+      exactly its required frequency inside the window and decrements when it falls below. When it
+      equals the number of distinct letters in t, the window is valid. Totals and missing-letter
+      counts cannot answer "does this window contain all of t" in a single comparison.'
+  - question: 'Recap from Day 2: in Two Sum II with a sorted array, when the current sum is too
+    big, why move the right pointer left?'
+    options:
+      - 'Because the left pointer is closer to the answer'
+      - 'Because every pair that uses the current right value is also too big, so nothing is lost
+        by discarding it'
+      - 'Because the array is unsorted'
+      - 'Because the window must stay fixed'
+    answerIndex: 1
+    explanation:
+      'Sorted ascending means the current right value is the largest remaining. If even pairing it
+      with the smallest left value is too big, every other pair through this right is bigger still —
+      one move discards the whole region. That is the shrinking invariant: a move is safe exactly
+      when it proves a class of candidates impossible.'
+  - question: 'For Minimum Window with t = "aa", what is the threshold for the window to be
+    valid?'
+    options:
+      - 'One distinct letter satisfied — but only once the window holds at least two a characters'
+      - 'Two distinct letters satisfied'
+      - 'Any single a character'
+      - 'Only when the window contains nothing but a characters'
+    answerIndex: 0
+    explanation:
+      't has one distinct letter, a, with a required frequency of two. The satisfied-count rises only
+      when the in-window count of a reaches two — a single a is not enough. So validity is exactly
+      "one distinct letter satisfied", which secretly means "at least two a characters present".
+      The threshold is about distinct letters; the frequency lives inside each letter count.'
+  - question: 'What is the total cost of Minimum Window Substring push-pull?'
+    options:
+      - 'O(n²) because every start position could grow a window'
+      - 'O(n) — each character is added once by the right edge and removed once by the left edge,
+        with O(1) map arithmetic per step'
+      - 'O(n log n) because the string is sorted'
+      - 'O(1) because the window never moves'
+    answerIndex: 1
+    explanation:
+      'The right edge visits each index once and the left edge visits each index once, each visit
+      doing constant-time count bookkeeping. That is two passes, O(n), independent of how long t
+      is. There is no sorting and no rescanning, so the O(n²) and O(n log n) claims describe work
+      the algorithm never does.'
+problems:
+  - title: '3Sum'
+    leetcodeId: 15
+    difficulty: 'medium'
+    prompt: |
+      Given an integer array nums, return all the triplets [a, b, c] such that a, b, and c are
+      three distinct positions of nums and a + b + c = 0. The result must contain each triplet
+      exactly once. Sort each triplet ascending and return the list of triplets sorted by their
+      elements (first element, then second, then third) so the output is deterministic. The
+      signature is solution(nums).
+      Example: [-1,0,1,2,-1,-4] → [[-1,-1,2],[-1,0,1]]; [0,1,1] → [].
+    starterCode: |
+      function solution(nums) {
+        // Plan: sort a copy ascending. For each first element i (skipping
+        // duplicates), run two pointers: lo just after i, hi at the end.
+        // Sum too small: lo++. Sum too big: hi--. On a match, record
+        // [nums[i], nums[lo], nums[hi]], skip duplicate lo and hi values,
+        // and step both pointers inward. Empty or too-short input -> [].
+        return [];
+      }
+    testCases:
+      - input: [[-1, 0, 1, 2, -1, -4]]
+        expected:
+          - [-1, -1, 2]
+          - [-1, 0, 1]
+      - input: [[0, 0, 0]]
+        expected: [[0, 0, 0]]
+      - input: [[0, 1, 1]]
+        expected: []
+      - input: [[0, 0, 0, 0]]
+        expected: [[0, 0, 0]]
+      - input: [[-2, 0, 1, 1, 2]]
+        expected:
+          - [-2, 0, 2]
+          - [-2, 1, 1]
+      - input: [[1, 2, -2, -1]]
+        expected: []
+      - input: [[]]
+        expected: []
+  - title: 'Minimum Window Substring'
+    leetcodeId: 76
+    difficulty: 'hard'
+    prompt: |
+      Given two strings s and t, return the minimum-length contiguous substring (window) of s that
+      contains every character of t, counting duplicates: t = "aa" needs two a characters. If no
+      window exists, return the empty string "". The signature is solution(s, t).
+      Example: s="ADOBECODEBANC", t="ABC" → "BANC"; s="a", t="aa" → "".
+    starterCode: |
+      function solution(s, t) {
+        // Plan: count t's characters into a "need" map. Slide a window with
+        // left and right edges. Grow the right edge until every needed
+        // character is covered (track a satisfied count of distinct
+        // letters); then shrink the left edge while the window stays valid,
+        // keeping the shortest valid window ever seen. No window found -> "".
+        return "";
+      }
+    testCases:
+      - input: ['ADOBECODEBANC', 'ABC']
+        expected: 'BANC'
+      - input: ['a', 'a']
+        expected: 'a'
+      - input: ['a', 'aa']
+        expected: ''
+      - input: ['abc', 'c']
+        expected: 'c'
+      - input: ['bba', 'ab']
+        expected: 'ba'
+      - input: ['aab', 'aa']
+        expected: 'aa'
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './26-review-i.frames';
+
+<DsaVisualizer
+  title="A window that grows, then shrinks, to find BANC"
+  frames={frames}
+  client:idle
+/>
+
+## The one question this page answers
+
+Twenty-five days in, the question is not whether you can learn something new — it is whether you
+still own what you learned first. This page answers one question: _can you pull two-pointer thinking
+and sliding-window thinking apart, and apply each to a problem that twists it?_ Two pointers close
+in on 3Sum; a window slides across Minimum Window Substring. The one-pass discipline from Days 2 and
+3 is the entire engine of both — this time under harder constraints, with duplicate handling and a
+validity check that must stay cheap.
+
+## Start with an analogy
+
+A long hallway with numbered doors. A trio of friends must find every set of three rooms whose
+numbers sum to zero. They line the doors up in numeric order, then for each first door two friends
+walk the rest of the hallway from opposite ends: sum too small, step in from the left; sum too big,
+step in from the right; exact zero, note the trio and step both in. Every step retires an entire
+region of hallway.
+
+A second task: a very long banner reading `ADOBECODEBANC` and a stub of letters, `ABC`, to cover.
+One edge of a curtain sweeps right until all three letters are hidden underneath it, then the other
+edge sweeps right — closing in — while all three stay hidden. Each sweep reads any letter of the
+banner at most twice: once when the curtain edge passes it, once when it is revealed.
+
+The lined-up hallway is sorted 3Sum. The curtain is the sliding window. Both are one pass, two
+indices, and a precise rule for when moving an index is safe.
+
+## The two tools, side by side
+
+Both tools are two pointers, and the difference is their motion.
+
+- **Closing-in pointers** start at opposite ends of a sorted (or otherwise monotone) region and move
+  toward each other. The rule that makes them fast is ordering: with a sorted array, moving `lo`
+  right proves every pair through the old `lo` is too small, and moving `hi` left proves every pair
+  through the old `hi` is too big. Each move discards a class of candidates. No ordering, no
+  justification — that is the Day 2 contract.
+
+- **The sliding window** has two pointers that both advance monotonically. The right edge grows the
+  window until it satisfies some predicate, then the left edge shrinks it while the predicate still
+  holds, then growth resumes. The window needs no sorted input; it only needs the validity test to
+  be monotone under shrinking — the window is valid now, gets smaller, and we ask "still valid?".
+  The cost is linear because each index is a right-edge arrival and a left-edge departure, each
+  once.
+
+3Sum is the first tool asked to be clever about duplicates; Minimum Window is the second tool asked
+to track validity in O(1). The rest of this page is exactly those two pressures.
+
+## 3Sum: the closing-in pass, deduplicated
+
+For each first element `nums[i]`, the other two must sum to `-nums[i]`. Because the array is sorted,
+the pair scan is the Two Sum II move from Day 2:
+
+1. Sort a copy ascending.
+2. For each `i` — skipping any value equal to the previous first element — set `lo = i + 1` and
+   `hi = nums.length - 1`.
+3. While `lo < hi`: if the three sum to zero, record the triplet and then step both pointers past
+   any duplicates; if the sum is too small, `lo++`; if too big, `hi--`.
+
+The complexity: O(n log n) for the sort plus n two-pointer scans of O(n) each — O(n²) overall, which
+dominates the sort.
+
+The duplicates are the pressure. First-element duplicates regenerate identical triplets, so they are
+skipped up front. Pair duplicates inside a match are skipped the same way: after recording a
+triplet, advance `lo` past equal values and `hi` past equal values, then step both once more. The
+triplets come out sorted because the scan emits them with `nums[i] ≤ nums[lo] ≤ nums[hi]` by
+construction.
+
+## Minimum Window Substring: the push-pull window
+
+The predicate is "the window contains every character of t, duplicates included." The naive validity
+check — recount the window against t on every move — would cost O(n · |t|). The satisfied-count
+avoids that:
+
+- **Count t** into a `need` map, and note how many distinct letters it has.
+- **Grow the right edge** into `s`. When a character's in-window count reaches exactly its required
+  count, bump the satisfied-count.
+- **When the satisfied-count equals the number of distinct letters**, the window is valid. Shrink
+  the left edge while it stays valid, updating the best window, and decrement the satisfied-count
+  whenever a character falls below its requirement.
+- Repeat until the right edge exhausts `s`.
+
+The cost is O(n): two edges, one pass each, O(1) work per character. Watch the visualizer run the
+classic `ADOBECODEBANC` / `ABC` case — the window finds `ADOBEC`, loses validity when it drops the
+A, regains it, and finally locks onto `BANC`.
+
+## What this is NOT
+
+| Misconception                                            | Truth                                                                                                                                    |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| "Two pointers and sliding window are unrelated tricks"   | The sliding window IS two pointers — the right edge grows, the left edge chases it; only the motion differs from closing in.             |
+| "3Sum needs three nested loops"                          | After sorting, each first element runs one closing-in scan; every pointer move discards a whole region, so it is O(n²), not O(n³).       |
+| "Duplicates make 3Sum harder"                            | They only make it _repeat_; skipping equal first elements and equal pair values keeps the answer unique at no extra cost.                |
+| "Minimum Window re-checks the whole window each step"    | A satisfied-count over distinct letters turns each move into O(1) arithmetic; the window is valid the instant the count hits its target. |
+| "The two problems belong to different days of the track" | Both are Day 2's one-pass, two-index discipline; Day 26 re-examines them because the same invariant powers harder variants.              |
+
+## Why this matters for the rest of the trip
+
+The review days exist to prove that the early tools were not memorized — they were understood.
+Sliding window is the parent of subarray problems you have already met and will meet again; the
+closing-in pointer is the heart of every sorted-array pair problem. If you can name, for any two
+pointers, _what one move discards_, you have the invariant that carries you through both of today's
+problems and most of the ones ahead. Minimum Window is also the canonical "two-pass, one-hash-map"
+shape that reappears in Top K Frequent Elements at the finish line.
+
+Solve the two problems above. For 3Sum, write the dedup in both places before you test — the triplet
+record and the pair skip. For Minimum Window, write the satisfied-count version and confirm it
+returns `BANC` on the classic input without ever recounting the window.

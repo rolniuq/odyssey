@@ -1,0 +1,262 @@
+---
+order: 6
+title: 'Linked Lists'
+coreConcept:
+  'A linked list trades instant random access for a chain of nodes, each carrying one pointer to the
+  next — so algorithms become dances of rewiring arrows, not shuffling values.'
+docSource: 'https://en.wikipedia.org/wiki/Linked_list'
+docTitle: 'Linked list — Wikipedia'
+difficulty: 'intermediate'
+objectives:
+  - 'Describe a node as a value plus a next pointer, and name what that forfeits (random access) and
+    gains (constant-time insertion at a known spot)'
+  - 'Reverse a list in one pass by walking prev / curr / next and rewiring each arrow'
+  - 'Detect a cycle with Floyd, two walkers at different speeds, without extra memory'
+quiz:
+  - question: 'What exactly does a singly linked list node carry?'
+    options:
+      - 'Its value, a next pointer, and a stored length counter'
+      - 'Just its value — the next pointer is kept in a separate registry'
+      - 'Its value plus one pointer, next, which points to the following node (or null at the tail)'
+      - 'Two pointers, left and right, like the edges of an array slice'
+    answerIndex: 2
+    explanation:
+      'A node is the minimal cell: the payload and a single arrow to where the story continues. No
+      per-node length is stored, the pointer lives inside the node itself, and a singly linked list
+      has exactly one outgoing arrow — no left/right pair.'
+  - question: 'How does an in-place reversal actually rewire the list?'
+    options:
+      - 'It swaps the values of the first and last nodes until the order flips'
+      - 'It points each node.next at the node that came before it, saving the old next first so the
+        walker is never stranded, moving one node per step'
+      - 'It cuts the list at the middle and works outward from both ends'
+      - 'It copies the values into a fresh array and rebuilds the list from that'
+    answerIndex: 1
+    explanation:
+      'Reversal is pointer surgery, not data movement: at node curr you flip the arrow (curr.next =
+      prev), but you must save next first because it is the only path to the rest of the list, and
+      you are about to overwrite it. Swapping values or copying to an array would abandon the point
+      of the technique.'
+  - question: 'Why must you save next before running curr.next = prev?'
+    options:
+      - 'Because the language garbage-collects the old pointer automatically'
+      - 'Because without it you can never advance: the saved next is the only remaining path into
+        the tail of the list, and you are about to destroy it'
+      - 'So the runtime can free the node for reuse'
+      - 'Because prev and curr are actually the same node'
+    answerIndex: 1
+    explanation:
+      'Each node is only reachable through its predecessor. The moment you repoint curr.next at
+      prev, the original successor becomes unreachable unless you captured it first. Saving it is
+      not a style habit — it is what keeps the walk alive.'
+  - question:
+      'Why does Floyd, with fast moving two steps and slow one, guarantee a meeting if a cycle
+      exists?'
+    options:
+      - 'Because on a finite loop the faster walker eventually laps the slower one, so they must
+        collide; on a linear list fast simply runs off the end first'
+      - 'Because both pointers start at the same node, so they trivially overlap forever'
+      - 'Because fast jumps three nodes at a time, which skips every possible gap'
+      - 'Because the list secretly keeps a hash of visited nodes'
+    answerIndex: 0
+    explanation:
+      'The trap is finite, so relative motion (speed difference of one node per step) closes the gap
+      like a hand on a clock: the faster hand always catches the slower circle. A disjoint, linear
+      list cannot trap them — fast exits the list and the walk ends. Neither start position nor jump
+      size is the reason; lap dynamics is.'
+  - question: 'What is the extra space cost of the tortoise and hare trick?'
+    options:
+      - 'O(n) — it marks every visited node'
+      - 'O(log n) — it compresses the visited set'
+      - 'O(1) — just two walker variables, no marker structure at all'
+      - 'O(n²) — it re-examines pairs'
+    answerIndex: 2
+    explanation:
+      'Only two local variables exist: slow and fast. There is no visited set, no hash, no stack —
+      the whole idea is to detect the cycle using only the distance between two walkers, giving O(1)
+      space on top of the list itself.'
+  - question: 'Why can an array enjoy random access while a linked list cannot?'
+    options:
+      - 'They are stored in different types of memory chips'
+      - 'An array occupies contiguous slots, so reaching index k is one arithmetic jump from the
+        base address; a list must hop k arrows from the head'
+      - 'Lists only exist when n is large enough to matter'
+      - 'Arrays are always kept in sorted order'
+    answerIndex: 1
+    explanation:
+      'Random access falls out of contiguous memory: base address plus k times element size gives
+      the slot directly. A linked list scatters its nodes, so the only path to node k is the chain
+      of arrows — k hops. That single fact is why a list index-only search costs O(n).'
+  - question: 'When is a linked list a genuinely good pick despite losing random access?'
+    options:
+      - 'When you need constant-time insertion or deletion at a known position and never want a
+        contiguous block resized — a queue, an LRU cache, a browser back button'
+      - 'Whenever you need to binary search over the items'
+      - 'Always, because it reads faster than an array'
+      - 'Only when the values must remain sorted permanently'
+    answerIndex: 0
+    explanation:
+      'The arrow is the superpower: splice in or cut out a node in O(1) once you hold the pointer,
+      and the list never has to copy a block to grow. That is exactly why FIFO queues and caches use
+      nodes. Searching and reading are the array diet — lists starve on them.'
+  - question: 'Which everyday mental picture captures a linked list best?'
+    options:
+      - 'A train where every car is bolted to the next, but you know the seat number of every car
+        ahead'
+      - 'A scavenger hunt: each clue holds only the location of the next clue, and you cannot know
+        clue N+1 until you stand at clue N'
+      - 'A deck of cards you are sorting by hand'
+      - 'A peg board where each key lands on its own peg'
+    answerIndex: 1
+    explanation:
+      'The defining trait is sequential dependence: you can never skip ahead, because position k+1
+      is only knowable from inside position k. Trains imply fixed seat numbers and sorting a deck
+      has nothing chain-like; the peg board is the hash metaphor from Day 1.'
+problems:
+  - title: 'Reverse Linked List'
+    leetcodeId: 206
+    difficulty: 'easy'
+    prompt: |
+      Given an array vals of node values in order, reverse the singly linked list those values form.
+      The sandbox has no ListNode class, so build the list yourself from vals, reverse it by
+      rewiring next pointers (prev / curr / next in one pass: O(n) time, O(1) extra space), then
+      return an array of the values in their reversed order. Empty list -> [].
+      Examples: [1,2,3,4,5] -> [5,4,3,2,1]; [1,2] -> [2,1].
+    starterCode: |
+      function solution(vals) {
+        // Plan: link the values into nodes ({ val, next: null }) in order.
+        // Walk prev / curr / next, flipping curr.next back to prev each
+        // step. When curr falls off the end, prev is the new head; read
+        // its values out in order.
+        return [];
+      }
+    testCases:
+      - input: [[1, 2, 3, 4, 5]]
+        expected: [5, 4, 3, 2, 1]
+      - input: [[1, 2]]
+        expected: [2, 1]
+      - input: [[]]
+        expected: []
+      - input: [[1]]
+        expected: [1]
+  - title: 'Linked List Cycle'
+    leetcodeId: 141
+    difficulty: 'easy'
+    prompt: |
+      Given vals (node values) and pos, detect whether the singly linked list has a cycle. The list
+      ends normally if pos = -1; otherwise its tail points back at the node at index pos. Build the
+      list from vals and pos, then run Floyd: a slow walker stepping once and a fast walker stepping
+      twice. If they ever meet there is a cycle; if fast runs off the list there is not.
+      Examples: vals=[3,2,0,-4], pos=1 -> true; vals=[1,2], pos=-1 -> false.
+    starterCode: |
+      function solution(vals, pos) {
+        // Plan: build nodes from vals and link them; if pos >= 0, point the
+        // tail's next at nodes[pos]. Then walk slow (one step) and fast
+        // (two steps). They meet -> true; fast hits null -> false.
+        return false;
+      }
+    testCases:
+      - input: [[3, 2, 0, -4], 1]
+        expected: true
+      - input: [[1, 2], 0]
+        expected: true
+      - input: [[1, 2, 3, 4], 3]
+        expected: true
+      - input: [[1], -1]
+        expected: false
+      - input: [[], -1]
+        expected: false
+      - input: [[1, 2], -1]
+        expected: false
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './06-linked-lists.frames';
+
+<DsaVisualizer title="Rewiring the arrows" frames={frames} client:idle />
+
+## The one question this page answers
+
+Arrays hand you everything instantly: any element by index, in one leap. A linked list asks a
+sharper question: _if elements are permitted to live anywhere in memory, chained by pointers, what
+do we give up — and what becomes suddenly cheap?_ The answer: you give up random access, but
+insertion and deletion at a known spot become O(1), and a whole class of "pointer dance" algorithms
+opens up.
+
+## Start with an analogy
+
+A scavenger hunt. You are given a first clue; it says only _where the next clue is_. You walk there,
+read the next one, and onward. You can never "jump to clue 7" — nothing tells you where clue 7 is
+until you stand on clue 6. That is the whole personality of a linked list.
+
+An array is the opposite: a numbered row of lockers where locker 7 is seven slots down the hall from
+locker 0, computed in one step. The hunt is a chain; the lockers are a slab of contiguous memory.
+
+## Meet the node and the arrow
+
+A node is the list's atomic unit — a value and one pointer, `next`. The last node points to `null`
+(`None`, in Python terms), which is how a walker knows the hunt is over. Walking the list means
+"start at `head`; follow `next` until it is `null`" — n arrows for n nodes, always O(n).
+
+### The cost you pay
+
+Because nodes live anywhere, "give me node at index k" requires walking k arrows from `head`. There
+is no math that predicts address of node k. So **random access is O(n)**, and the familiar "array
+.length" is also unavailable — you must count as you walk.
+
+### The cost you gain
+
+Inserting or deleting a node, given the pointer to its place, is a matter of splicing arrows:
+`b.next = a.next; a.next = b` (insert), or `a.next = a.next.next` (delete). No shifting, no resizing
+— O(1). That is why queues and caches pick linked structures.
+
+## The reversal dance: three pointers
+
+Reverse a list. The honest scalar version of the problem: rewire every arrow to point backward in
+one pass, using O(1) extra space.
+
+The move sequence is defensive:
+
+1. `prev = null`, `curr = head`.
+2. While `curr` exists: save `next = curr.next` — the only bridge to the rest of the list.
+3. Flip the arrow: `curr.next = prev`.
+4. Slide the trio: `prev = curr; curr = next`.
+
+When `curr` falls off the end, `prev` is the new head. Watch the express-courier picture in the
+diagram above: the "done" cells left of `curr` are the nodes whose arrows now point backward.
+
+### Why the save is non-negotiable
+
+Step 2 is the heart. If you flip `curr.next` before grabbing `next`, the remnant of the list hanging
+off that arrow becomes unreachable — you have destroyed the very path your walker needs.
+Save-then-flip is not a nicety; it is the invariant that keeps the loop alive.
+
+## Cycle hunting: two walkers
+
+A cycle is a bug where a tail node points back into the list, so the walk never ends. How do you
+know, without visited-markers (which cost O(n) space)?
+
+Floyd's tortoise and hare: send `slow` and `fast` off together; `slow` steps one node, `fast` two.
+If the list is a line, `fast` reaches `null` first — no cycle. If there is a loop, the two are
+trapped inside a finite circle, and because `fast` gains one node per step on `slow`, it must
+eventually lap it and collide. Two variables, no markers: O(1) extra space.
+
+## What this is NOT
+
+| Misconception                                  | Truth                                                                                                                  |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| "A list is just an array with extra steps"     | Arrays own contiguous-memory random access; lists own splice-in-the-middle O(1) surgery. They are different contracts. |
+| "Reversal means swapping around values"        | Reversal is pointer surgery on `next`, walking once; values stay exactly where they were allocated.                    |
+| "Cycle detection needs a visited set"          | Floyd detects it with two walkers and O(1) space — the set is the naive O(n) answer.                                   |
+| "Indexing a list is fine if you cache lengths" | Length or not, reaching index k still costs k arrow-hops; cached length only buys you `n`, not random access.          |
+
+## Why this matters for the rest of the trip
+
+Day 7's recursion clothes many "walk the chain" routines in a recursive costume (a base case at
+`null`, a recursive case on `node.next`) — the reversal above, for instance, is a one-line recursive
+cousin. And the pointer-rewiring habits pay off on Day 8-10 as trees — those are just lists with two
+arrows per node — and on heap-style problems where "keep only the k best" needs a small helper
+structure.
+
+Solve the two problems above before moving on — then on LeetCode try re-writing the reversal
+recursively, and _Remove Nth Node From End of List_ to feel two-walker cadence again.

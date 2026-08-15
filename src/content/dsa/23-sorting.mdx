@@ -1,0 +1,242 @@
+---
+order: 23
+title: 'Sorting with invariants: the flag and the pivot'
+coreConcept:
+  'Two sorting tricks that avoid comparing everything: the Dutch national flag sorts an array of
+  three values in one pass with three pointers and a rock-solid invariant, and quickselect finds the
+  k-th largest by partitioning around a pivot and only descending into the one side that matters —
+  O(n) on average, no full sort.'
+docSource: 'https://www.geeksforgeeks.org/sort-an-array-of-0s-1s-and-2s/'
+docTitle: 'Sort an array of 0s, 1s and 2s (Dutch National Flag) — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'State the invariant of the Dutch national flag: before low live only 0s, after high only 2s,
+    and the unknown middle runs from mid to high'
+  - 'Trace the three cases of the flag loop — a 0 swaps with low and advances both, a 1 just
+    advances mid, a 2 swaps with high and does not advance mid'
+  - 'Explain why each element moves at most once, making the flag sort O(n) in place'
+  - 'Describe quickselect: partition around a pivot, then recurse only into the side holding the
+    k-th position'
+  - 'Compare quickselect to a full sort: average O(n) versus O(n log n), at the cost of an
+    unpromised ordering of the whole array'
+quiz:
+  - question: 'In the Dutch national flag, what does the invariant guarantee at every step?'
+    options:
+      - 'That everything before low is a 0 and everything after high is a 2, with the unknown middle
+        between mid and high'
+      - 'That the array is fully sorted'
+      - 'That low equals mid always'
+      - 'That no element is ever swapped'
+    answerIndex: 0
+    explanation:
+      'The invariant is a partition promise, not a sorted one: the zones are "known 0s", "unknown",
+      and "known 2s", and the loop shrinks the unknown zone on every iteration until it is empty.
+      Claiming the array is already sorted is the goal, not the invariant; low and mid diverge when
+      a 2 is swapped; and swaps are exactly the mechanism that keeps the invariant true.'
+  - question: 'What happens when the flag loop finds a 0 at mid?'
+    options:
+      - 'Swap arr[mid] with arr[high] and decrement high'
+      - 'Swap arr[mid] with arr[low], then advance both low and mid'
+      - 'Just advance mid'
+      - 'Swap arr[low] with arr[high]'
+    answerIndex: 1
+    explanation:
+      'A 0 belongs at the front, so it swaps with the first unknown position (low), and both low and
+      mid move right: low because the 0 is now locked, mid because the swapped-in value is handled
+      by advancing. Swapping with high would send the 0 to the 2-zone, and merely advancing mid
+      would leave the 0 before low — both break the invariant.'
+  - question: 'When the flag loop finds a 2 at mid, why must mid NOT advance immediately?'
+    options:
+      - 'Because the loop is exhausted'
+      - 'Because the value swapped in from high is unknown and must be examined at mid before
+        advancing'
+      - 'Because 2s never move'
+      - 'Because mid is already past high'
+    answerIndex: 1
+    explanation:
+      'Swapping arr[mid] with arr[high] pulls an arbitrary unknown value into mid; that value could
+      be a 0 or a 2, so it has to be classified in the next iteration. Advancing mid right away
+      would skip it and could push an unexamined value into the unknown zone, breaking the
+      invariant. The "do not advance on a 2" rule is the classic bug guard.'
+  - question: 'Why does the flag sort run in O(n) instead of O(n log n)?'
+    options:
+      - 'Because it never compares elements'
+      - 'Because there are only three distinct values, so each element can be classified and moved
+        at most once — the whole pass is a single sweep with no nested work'
+      - 'Because the array is already sorted'
+      - 'Because high decreases twice per step'
+    answerIndex: 1
+    explanation:
+      'General comparison sort needs O(n log n) because every element can relocate through log n
+      comparisons; the flag sort exploits the small alphabet. With three values, each element is
+      classified once and swapped at most once, and each loop step shrinks the unknown zone, so the
+      total work is linear. It does compare elements (that is how it classifies them), and no step
+      doubles the work.'
+  - question: 'After partitioning in quickselect, what tells you the pivot is the answer?'
+    options:
+      - 'The pivot lands exactly at index k − 1 in the descending order'
+      - 'The pivot is the largest element'
+      - 'The left partition is empty'
+      - 'The pivot equals the first element'
+    answerIndex: 0
+    explanation:
+      'Quickselect keeps a descending partition, so indices 0..p−1 are all greater than the pivot
+      value. If the pivot sits at index k − 1, exactly k−1 elements are greater, so it is the k-th
+      largest — done. Being largest, having an empty partition, or matching the first element are
+      special cases of the position test, not the rule itself.'
+  - question: 'What does quickselect give up compared with a full sort?'
+    options:
+      - 'It gives up correctness'
+      - 'It only promises the k-th position, not a fully ordered array — and on average it trades
+        the O(n log n) sort for O(n), accepting that an unlucky pivot can degrade to O(n²)'
+      - 'It gives up the use of comparisons'
+      - 'It gives up in-place operation'
+    answerIndex: 1
+    explanation:
+      'Quickselect is partial order for partial cost: it recurses into one side only, so it never
+      pays to fully sort both halves. The trade is robustness — a bad pivot choice (already-sorted
+      input with a naive pivot) can push it to O(n²), which is why random or median-of-three pivot
+      selection matters. It stays correct and in-place, and it still compares; it just compares
+      less.'
+problems:
+  - title: 'Sort Colors'
+    leetcodeId: 75
+    difficulty: 'medium'
+    prompt: |
+      Given an array nums of only 0s, 1s and 2s, sort it in place so all 0s come first, then all 1s,
+      then all 2s, and return the sorted array. Use the Dutch national flag: low = 0, mid = 0,
+      high = nums.length - 1. While mid <= high: a 0 swaps with low (advance both), a 1 just
+      advances mid, a 2 swaps with high (do not advance mid). The signature is solution(nums).
+      Example: [2,0,2,1,1,0] → [0,0,1,1,2,2].
+    starterCode: |
+      function solution(nums) {
+        // Plan: three pointers. low and mid start at 0, high at the end.
+        // nums[mid] === 0 -> swap with low, low++, mid++. nums[mid] === 1
+        // -> mid++. nums[mid] === 2 -> swap with high, high-- (mid stays).
+        // Stop when mid passes high, then return nums.
+        return nums;
+      }
+    testCases:
+      - input: [[2, 0, 2, 1, 1, 0]]
+        expected: [0, 0, 1, 1, 2, 2]
+      - input: [[2, 0, 1]]
+        expected: [0, 1, 2]
+      - input: [[0]]
+        expected: [0]
+      - input: [[1, 2, 0]]
+        expected: [0, 1, 2]
+      - input: [[2, 2, 2, 0, 0, 0, 1]]
+        expected: [0, 0, 0, 1, 2, 2, 2]
+  - title: 'Kth Largest Element in an Array'
+    leetcodeId: 215
+    difficulty: 'medium'
+    prompt: |
+      Given an integer array nums and an integer k (1 ≤ k ≤ nums.length), return the k-th largest
+      element in the array. Solve with quickselect: partition the array so elements greater than a
+      pivot come first, then recurse only into the side holding position k - 1 (0-indexed in
+      descending order). The signature is solution(nums, k).
+      Example: nums [3,2,1,5,6,4], k = 2 → 5.
+    starterCode: |
+      function solution(nums, k) {
+        // Plan: quickselect over nums, working on a copy so the input is
+        // not mutated. Pick a pivot (try nums[hi] or a random index),
+        // partition so larger values land before it, then recurse into the
+        // side that holds index k - 1 until the pivot is that index.
+        return nums.sort((a, b) => b - a)[k - 1];
+      }
+    testCases:
+      - input: [[3, 2, 1, 5, 6, 4], 2]
+        expected: 5
+      - input: [[3, 2, 3, 1, 2, 4, 5, 5, 6], 4]
+        expected: 4
+      - input: [[1], 1]
+        expected: 1
+      - input: [[2, 1], 1]
+        expected: 2
+      - input: [[7, 7, 7, 7], 1]
+        expected: 7
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './23-sorting.frames';
+
+<DsaVisualizer title="Dutch national flag: three pointers, one pass" frames={frames} client:idle />
+
+## The one question this page answers
+
+Sorting usually means comparisons — n log n of them — but not every sortable pile deserves that
+price. This page answers one question: _when can you sort without the full cost, by leaning on
+structure and invariants instead?_ Two answers: when the alphabet is tiny (0, 1, 2) the Dutch
+national flag sorts in one linear pass with three pointers, and when you need only one position the
+partition step of quicksort can be reused as quickselect — finding the k-th largest without ever
+sorting the rest. Both are the same lesson: an invariant turns a loop that looks like it should be
+expensive into a loop that provably cannot be.
+
+## Start with an analogy
+
+A warehouse worker sorting three boxes — red, white, blue — off a conveyor belt. Instead of emptying
+the whole belt onto the floor, she keeps three zones: the red zone at the front, the blue zone at
+the back, and the untouched middle. She reads one box at a time. A red box goes to the front zone; a
+blue box goes to the back zone; a white box just stays put in the middle. When the middle is empty,
+the belt is sorted — and no box was ever picked up twice.
+
+The three zones are the **invariant**; the box in her hand is the **mid pointer**; the front and
+back boundaries are **low** and **high**.
+
+## The Dutch national flag invariant
+
+The array splits into four regions at all times:
+
+- `arr[0 .. low-1]` — all 0s, locked.
+- `arr[low .. mid-1]` — all 1s, locked.
+- `arr[mid .. high]` — unknown.
+- `arr[high+1 .. end]` — all 2s, locked.
+
+The loop reads one unknown cell at `mid` and shrinks the unknown region until `mid > high`:
+
+- `arr[mid] === 0` → swap with `arr[low]`, `low++`, `mid++` (a 0 locks in front).
+- `arr[mid] === 1` → `mid++` (a 1 is already home).
+- `arr[mid] === 2` → swap with `arr[high]`, `high--`, but **do not** `mid++` (the swapped-in value
+  is unknown and must be read next).
+
+The visualizer runs all of this on `[2,0,2,1,1,0]`: watch the unknown middle shrink and the locked
+zones grow, ending at `[0,0,1,1,2,2]`. Cost: every element is classified once and swapped at most
+once — O(n) time, O(1) space.
+
+## Quickselect: one side of the partition
+
+The `k`-th largest does not require knowing the whole ordering. Quickselect reuses the quicksort
+partition and then descends into only one side:
+
+1. Pick a pivot (random, or median-of-three, to dodge the worst case).
+2. Partition so larger values come before the pivot; the pivot lands at some index `p`.
+3. If `p === k - 1`, the pivot **is** the answer. If `p > k - 1`, recurse into the left side (larger
+   values); otherwise recurse into the right side.
+
+Each level halves the amount of work done, so the average is O(n) — a strict improvement over the
+O(n log n) a full sort would charge — with the caveat that a hostile pivot can degrade it to O(n²).
+Your browser runner accepts the simple `sort`-then-index solution too; the point of the problem is
+to feel why the partition-only version is the smarter one.
+
+## What this is NOT
+
+| Misconception                          | Truth                                                                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| "Sorting always costs n log n"         | The flag sort is O(n) because the tiny alphabet lets each element move at most once; n log n is the price of comparison sorts.       |
+| "Quickselect returns the sorted array" | It returns one position; the array around the answer may stay unsorted — that partial promise is what buys the O(n) average.         |
+| "The flag sort works for any numbers"  | It only classifies three known values; general data still needs a comparison sort.                                                   |
+| "mid never stays put"                  | A 2 swap deliberately keeps mid in place so the unknown swapped-in value gets examined; skipping it is a famous bug.                 |
+| "In-place means the sort is stable"    | Both flag sort and partition are in-place, but neither preserves the relative order of equal keys — stability is a separate promise. |
+
+## Why this matters for the rest of the trip
+
+Invariants are the quiet engine of every efficient algorithm: the two-pointer days, binary search,
+and the monotonic stack all rest on "this region is settled, that region is unknown." The flag sort
+is the purest version — three pointers, one loop, a promise you can state in one sentence. And
+quickselect is the pattern behind "I only need the top k", showing up again in heap problems and
+streaming statistics. Master the habit of writing the invariant down before the loop, and the loop
+writes itself.
+
+Solve the two problems above. Sort Colors is the invariant made visible; Kth Largest is the
+partition put on a diet. For each, write the invariant (or the partition rule) on paper before you
+code — and for Kth Largest, convince yourself why recursing into one side is enough.

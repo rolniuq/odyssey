@@ -1,0 +1,256 @@
+---
+order: 10
+title: 'Heaps and Priority Queues'
+coreConcept:
+  'A heap is an array-backed binary tree that always keeps the smallest (or largest) element at the
+  root. Insert and delete-min each cost O(log n) because the tree stays shallow — that single
+  guarantee turns "keep only the best k" problems into a few lines.'
+docSource: 'https://en.wikipedia.org/wiki/Binary_heap'
+docTitle: 'Binary heap — Wikipedia'
+difficulty: 'intermediate'
+objectives:
+  - 'Show that a heap is a complete binary tree stored in a flat array, so children of index i are
+    2i+1 and 2i+2'
+  - 'Trace sift-up on insert and sift-down on extract — each O(log n) because the tree height is log
+    n'
+  - 'Keep a running top-k with a size-k min-heap: evict the smallest whenever the heap exceeds k'
+quiz:
+  - question: 'What invariant does a min-heap always honor?'
+    options:
+      - 'Every node stores a larger value than all of its children'
+      - 'The root holds the smallest value, and every parent is no larger than either child — the
+        array is only "sorted" in this vertical sense'
+      - 'The values are sorted left to right in the backing array'
+      - 'Every level contains exactly two nodes per parent'
+    answerIndex: 1
+    explanation:
+      'The only promise is vertical: parent ≤ children. Neighboring nodes on the same level can be
+      in any order, and there is no horizontal sortedness. The "sorted" intuition comes from binary
+      search trees and is exactly wrong here — flattening a heap gives a scrambled list.'
+  - question: 'How is a heap stored in memory?'
+    options:
+      - 'As pointer-heavy nodes, like a binary tree'
+      - 'As a flat array where index i has children at 2i+1 and 2i+2 (1-based: 2i and 2i+1). No
+        pointers are needed at all'
+      - 'As a doubly linked list'
+      - 'As a hash table keyed by value'
+    answerIndex: 1
+    explanation:
+      'The complete-tree shape lets arithmetic replace pointers: the child indices are predictable
+      from a parent index alone, so the heap is just an array and a few index rules. That is why a
+      heap costs no linked-node overhead while still behaving like a tree.'
+  - question: 'What is the cost of insert and extract-min in a heap of n elements?'
+    options:
+      - 'O(1) each, since arrays are fast'
+      - 'O(n²) worst case'
+      - 'O(log n) each — the tree height is log n, and sift-up/sift-down move one path from a leaf
+        to the root, at most one swap per level'
+      - 'O(n log n) each, as sorting is involved'
+    answerIndex: 2
+    explanation:
+      'Insert adds a leaf and sifts it up; extract swaps the root with the last leaf and sifts it
+      down. Each sift walks a single root-to-leaf path, and a complete tree with n nodes has height
+      log n, so at most log n swaps. Constant would be wonderful but impossible — the tree must stay
+      shallow, and log n is the price of that shape.'
+  - question: 'For "kth largest element", a size-k min-heap works because of which insight?'
+    options:
+      - 'The heap never stores values bigger than k'
+      - 'The heap holds exactly the k largest elements seen so far — its root, the smallest of those
+        k, IS the current kth largest. New values either bump the root or are ignored'
+      - 'The heap sorts the whole array once, so kth is read directly'
+      - 'The heap reduces n to k by deleting values'
+    answerIndex: 1
+    explanation:
+      'Once the heap has k items it is a trophy case of the best k. A newcomer smaller than the root
+      could never belong to the top k, so you skip it; a newcomer larger than the root evicts the
+      root (the current weakest of the k) and enters. The root is then precisely the kth largest
+      candidate — no full sort needed.'
+  - question: 'What is the extra space of the size-k min-heap approach versus a full sort?'
+    options:
+      - 'The heap uses O(k) extra memory and O(n log k) time; sorting uses O(1) extra but touches
+        all n log n'
+      - 'The heap uses O(n) memory — clones every value'
+      - 'Sorting is always cheaper in time'
+      - 'The heap has no memory cost at all'
+    answerIndex: 0
+    explanation:
+      'The size-k heap ignores everything that cannot reach the top k, so it pays heap maintenance
+      proportional to log k per element — O(n log k) — and holds at most k values. Sorting pays O(n
+      log n) and rewrites the input. For small k the heap is the clear winner; that trade, not
+      dogma, is the message.'
+  - question: 'For K Closest Points to Origin, why is comparing squared distance enough?'
+    options:
+      - 'Squares are faster to sort than roots'
+      - 'The square of the distance is monotone in the distance, so the closest k by squared
+        distance are the same k by true distance — no sqrt needed at all'
+      - 'Coordinates are always positive so squares equal distances'
+      - 'The origin is at (1,1)'
+    answerIndex: 1
+    explanation:
+      'You never need the actual distance value, only its ORDER. Since x² + y² grows exactly when
+      sqrt(x² + y²) does, ordering by the squared value and by the true distance are identical.
+      Dropping the sqrt removes floating-point noise and slows nothing. Positive coordinates are
+      irrelevant — the trick is monotonicity, not sign.'
+  - question: 'A heap can also serve as a running "next-smallest" cursor. Why?'
+    options:
+      - 'Because the root is always the smallest remaining, extracting it yields elements in
+        ascending order — a heap sort without loading everything at once'
+      - 'Because heaps compress the input'
+      - 'Because the root is randomly chosen'
+      - 'Because deletes cost O(n)'
+    answerIndex: 0
+    explanation:
+      'Repeatedly extracting the minimum produces a sorted stream: pop the root, sift down, the new
+      root is the next smallest. Inserting and extracting along the way (as Dijkstra does with a
+      priority queue) is the same root-always-smallest fact doing live work, not a one-shot sort.'
+  - question:
+      'When would a plain sort be the better kth-largest choice despite the heap being craftier?'
+    options:
+      - 'Never — the heap dominates sorting always'
+      - 'When k is close to n, so sorting once (O(n log n)) beats no-data-structure heap fiddling
+        and the constants'
+      - 'When the value range is huge'
+      - 'When n is a power of two'
+    answerIndex: 1
+    explanation:
+      'The heap wins when k is small (n log k ≪ n log n). As k nears n the log savings shrink and
+      the heap merely adds bookkeeping — sorting once, or a modified quick-select reaching O(n)
+      average, becomes cleaner. Choosing the tool by the k-to-n ratio, not by its cleverness, is the
+      actual skill.'
+problems:
+  - title: 'Kth Largest Element in an Array'
+    leetcodeId: 215
+    difficulty: 'medium'
+    prompt: |
+      Given an array of integers nums and an integer k, return the kth largest element in the
+      array. The sandbox has no heap library, so keep a running min-heap of size k (implement
+      sift-up on insert and sift-down on eviction in the plan below): the heap holds the k largest
+      values seen so far, and the heap root is your answer. Or, if you prefer, any correct approach
+      that returns the kth largest passes the judge.
+      Examples: [3,2,1,5,6,4], k=2 -> 5; [3,2,3,1,2,4,5,5,6], k=4 -> 4.
+    starterCode: |
+      function solution(nums, k) {
+        // Plan: maintain an array-backed min-heap. push(v): append, then
+        // bubble up while v is smaller than its parent. evict(): cover the
+        // root with the last element, then sift down so the smallest child
+        // rises. Feed every num; whenever the heap outgrows k, evict the
+        // root. The surviving root is the kth largest.
+        return 0;
+      }
+    testCases:
+      - input: [[3, 2, 1, 5, 6, 4], 2]
+        expected: 5
+      - input: [[3, 2, 3, 1, 2, 4, 5, 5, 6], 4]
+        expected: 4
+      - input: [[1], 1]
+        expected: 1
+      - input: [[2, 1], 1]
+        expected: 2
+      - input: [[-1, -2, -3], 2]
+        expected: -2
+  - title: 'K Closest Points to Origin'
+    leetcodeId: 973
+    difficulty: 'medium'
+    prompt: |
+      Given an array of points [x, y] and an integer k, return the k closest points to the origin
+      (0, 0). Distance means Euclidean; compare squared distance x² + y² — ordering by it is the
+      same as by true distance, no sqrt needed. Return any correct set; here, ordering
+      ascending-by-distance then by original index keeps the judge deterministic.
+      Examples: [[1,3],[-2,2]], k=1 -> [[-2,2]]; [[3,3],[5,-1],[-2,4]], k=2 -> [[3,3],[-2,4]].
+    starterCode: |
+      function solution(points, k) {
+        // Plan: compute dist2 = x*x + y*y for each point. Sort the points
+        // ascending by dist2 (ties by original index), then slice the
+        // first k. Squared distance preserves distance order exactly.
+        return [];
+      }
+    testCases:
+      - input: [[[1, 3], [-2, 2]], 1]
+        expected: [[-2, 2]]
+      - input: [[[3, 3], [5, -1], [-2, 4]], 2]
+        expected: [[3, 3], [-2, 4]]
+      - input: [[[0, 1], [1, 0]], 2]
+        expected: [[0, 1], [1, 0]]
+      - input: [[[1, 1]], 1]
+        expected: [[1, 1]]
+      - input: [[[2, 2], [-1, -1], [0, 0]], 1]
+        expected: [[0, 0]]
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './10-heaps.frames';
+
+<DsaVisualizer title="The k strongest, with the weakest on top" frames={frames} client:idle />
+
+## The one question this page answers
+
+"Give me the kth largest" and "give me the k closest" feel like sorting problems: rearrange
+everything, pick the kth. A heap asks a cheaper question: _can we watch only the top k the whole
+time, throwing away any value that could never be in it?_ Yes — with a structure whose root is
+always the current weakest of the best, inserts and evictions cost O(log k) each.
+
+## Start with an analogy
+
+A nightclub holding exactly k VIPs. The doorman keeps the door policy simple: the least famous
+person currently inside stands at the door. When someone arrives, if they are less famous than the
+doorman, they are turned away at once; if more famous, they walk in and the current doorman gets
+bumped out. At any moment the person you can name as "the kth most famous" is standing at the door.
+
+The doorman is the heap root. The club is the min-heap of size k: dropping the weakest member is
+O(log k), and rejecting a nobody is O(1).
+
+## The heap is a tree living in an array
+
+A **heap** is a complete binary tree — every level full except maybe the last, filled left to right
+— with one vertical invariant. In a **min-heap**, every parent is no larger than its children, so
+the root is the minimum. Two moves keep that truth alive:
+
+- **Sift up (insert):** append the new value as a leaf; while it is smaller than its parent, swap
+  them. It rises until parent ≤ value.
+- **Sift down (extract-min):** move the last leaf to the root; while it is larger than its smallest
+  child, swap with that child. It descends until it is ≤ both children.
+
+The trick that makes it cheap is storage: the tree is a flat array, children of index `i` are
+`2i + 1` and `2i + 2`, and proof of "no pointers needed" is in the working code above.
+
+Each sift is one root-to-leaf path, and a complete tree with n nodes has height about log n — hence
+**O(log n)** insert and extract. Only the root is ever visible, which is all a priority queue ever
+promised.
+
+## Running top-k, the kth largest way
+
+Keep a **min-heap of size k** as you scan the array:
+
+1. Push the next value. If the heap exceeds k, evict the root (the smallest of the current k).
+2. A value smaller than the root never enters the heap — it is below the current kth largest and
+   could not belong to the top k.
+3. When the array ends, the root IS the kth largest.
+
+The diagram above replays `[3, 2, 1, 5, 6, 4]` with k = 3 — watch the weakest member get bumped and
+the root always stay the answer-to-be.
+
+## K closest, without a single sqrt
+
+K Closest is the same trophy case with a twist: "distance from the origin." Since `x² + y²` grows
+exactly as `sqrt(x² + y²)` does, ordering by the squared value is ordering by true distance — so no
+square root ever runs. Sort ascending and slice the first k, or (when k is small) run the same
+size-k structure keyed on distance. Let the k-to-n ratio pick the tool.
+
+## What this is NOT
+
+| Misconception                                                 | Truth                                                                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| "A heap is a sorted array"                                    | Only vertical invariants hold (parent ≤ children); flat reads are unsorted, and that is fine — the root is all you need. |
+| "Priority queue and binary search tree are twins"             | A tree keeps the whole ordering navigable; a heap gives you one value fast and everything else costs you a sift.         |
+| "Extract-min always removes the smallest value ever inserted" | It removes the current minimum of the live set — values added since may be smaller yet still lose to the sift order.     |
+| "K closest needs Pythagorean distance computed"               | Squared distance is monotone in distance, so it sorts identically — sqrt is dropped without losing correctness.          |
+
+## Why this matters for the rest of the trip
+
+The heap is your first real "keep a small window of the best" tool and the raw material of
+Dijkstra's algorithm, Huffman coding, and the merge-k-sorted-lists family — every "always handle the
+currently smallest/biggest" problem. Practicing a hand-rolled sift now (as the problem above
+demands) means the built-in priority queues later are not a black box but a shortcut.
+
+Solve the two problems above — and make sure you can run that size-k min-heap by hand on the small
+arrays before you rely on it.

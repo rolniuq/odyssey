@@ -184,8 +184,8 @@ export default function QueryExecutor() {
       <div className="min-h-[3.5rem] border-t border-slate-100 px-4 py-3 dark:border-slate-800">
         {active < 0 ? (
           <p className="text-sm text-slate-400 dark:text-slate-500">
-            Press <span className="font-medium text-indigo-600 dark:text-indigo-400">Play</span>{' '}
-            (or tap any box) to walk through how a query becomes rows.
+            Press <span className="font-medium text-indigo-600 dark:text-indigo-400">Play</span> (or
+            tap any box) to walk through how a query becomes rows.
           </p>
         ) : (
           <p className="text-sm text-slate-600 dark:text-slate-300">

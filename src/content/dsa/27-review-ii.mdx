@@ -1,0 +1,313 @@
+---
+order: 27
+title: 'Review II: trees and dynamic programming, recalled'
+coreConcept:
+  'A review day that pairs the two recursive power tools of the track: tree walking and dynamic
+  programming. Lowest Common Ancestor shows recursion resolving on the way back up the tree; Word
+  Break shows a table resolving left to right. The one-concept rule relaxes today so both can be
+  recalled against harder inputs.'
+docSource: 'https://www.geeksforgeeks.org/lowest-common-ancestor-binary-tree-set-1/'
+docTitle: 'Lowest Common Ancestor in a Binary Tree — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Recall the post-order recursion shape: solve both children first, then decide at the node'
+  - 'State the LCA definition precisely, including that a node counts as its own ancestor'
+  - 'Translate a level-order array (with nulls for missing children) into a real binary tree'
+  - 'Recall 1D DP: dp[i] answers a prefix question using only strictly smaller prefixes'
+  - 'Classify Word Break as dynamic programming (overlapping prefixes), not greedy segmentation'
+quiz:
+  - question: 'What makes a node the lowest common ancestor of p and q?'
+    options:
+      - 'The node whose value is the minimum of the two'
+      - 'The deepest node that is an ancestor of both p and q, where a node counts as its own
+        ancestor'
+      - 'The shallowest node that appears on any path'
+      - 'The node reached by a breadth-first search'
+    answerIndex: 1
+    explanation:
+      'Ancestor means "on the path from the root down to the node", and the definition includes a
+      node as an ancestor of itself — otherwise the answer for p and a descendant of p would be
+      undefined. Depth decides: of every common ancestor, the one farthest from the root is the
+      answer. Minimum value, shallowest path node, and BFS arrival order are unrelated to ancestry.'
+  - question: 'In the classic LCA recursion, when a node''s value equals p (or q), the node…'
+    options:
+      - 'is discarded and the search continues above'
+      - 'is returned at once — it is a target, and if the other target lives in its subtree, this
+        node is the answer'
+      - 'forces the recursion to restart'
+      - 'must be swapped with its parent'
+    answerIndex: 1
+    explanation:
+      'If the current node is p, and q is somewhere in the same subtree, then this node is an
+      ancestor of q and of itself — the deepest common ancestor. The recursion returns the node
+      immediately; the parent sees a hit on that side and decides. Discarding it or restarting
+      would lose the only information that identifies the answer.'
+  - question: 'What does dp[i] mean in Word Break?'
+    options:
+      - 'The number of words needed to spell s[0..i)'
+      - 'Whether the prefix s[0..i) can be segmented into a sequence of dictionary words'
+      - 'The length of the longest dictionary word in s[0..i)'
+      - 'Whether s itself is in the dictionary'
+    answerIndex: 1
+    explanation:
+      'The boolean dp[i] asks a yes/no question about a prefix: can it be split entirely into
+      dictionary words? Counting words or tracking lengths answers a different problem, and the
+      final dp[s.length] answers the original question about the whole string. The base dp[0] is
+      true because an empty prefix needs no words at all.'
+  - question: 'Why is "dp[j] is true and s[j..i) is a dictionary word" the right transition?'
+    options:
+      - 'Because a segmentable prefix plus one whole word at the end is exactly a segmentable
+        prefix of s[0..i)'
+      - 'Because dictionary words must appear at the start of the string'
+      - 'Because every word must be one character long'
+      - 'Because dp[j] stores a word count, not a boolean'
+    answerIndex: 0
+    explanation:
+      'Any valid segmentation of s[0..i) has a last word ending at i — say it starts at j. The
+      prefix before that word, s[0..j), must itself be segmentable (dp[j] true), and the last word
+      must be in the dictionary. Trying every cut j covers every possible last word, so the table
+      explores the full search space in O(n) cells with O(n) cuts each.'
+  - question: 'Why does Word Break need a table instead of plain recursion?'
+    options:
+      - 'Because recursion cannot handle strings'
+      - 'Because the same prefix gets re-tested from many different cut positions, so naive
+        recursion recomputes overlapping subproblems exponentially'
+      - 'Because tables are faster than loops'
+      - 'Because the dictionary must be sorted first'
+    answerIndex: 1
+    explanation:
+      'The prefix s[0..j) is asked about from every position i that tries the cut j. Computing it
+      fresh each time duplicates work — the classic overlapping-subproblems signature from Day 12.
+      The table stores each dp cell once, collapsing what would otherwise explode. The dictionary
+      needs no sorting, and recursion itself is fine; it is the lack of reuse that is expensive.'
+  - question: 'In the LCA recursion, when the left child returns a node and the right child returns
+    a node, what does the current node do?'
+    options:
+      - 'Declare itself the LCA — the two targets are on opposite sides, so this node is the
+        deepest common ancestor'
+      - 'Return the left child only'
+      - 'Return null'
+      - 'Continue searching higher up'
+    answerIndex: 0
+    explanation:
+      'Both subtrees reporting a hit means p and q live on opposite sides of this node (or one of
+      them is this node). No node deeper than this one can be an ancestor of both, so this is the
+      answer — the recursion resolves exactly when both halves succeed, which is the post-order
+      shape from Day 9.'
+  - question: 'If p = 5 and q = 4, and 4 is inside 5''s subtree, the LCA is…'
+    options:
+      - '4, because it is deeper'
+      - '5, because 5 is an ancestor of both itself and 4'
+      - 'The root, always'
+      - 'Undefined — a node cannot be its own ancestor'
+    answerIndex: 1
+    explanation:
+      'A node is its own ancestor, so 5 is a common ancestor of 5 and 4. Any node deeper than 5 is
+      not an ancestor of 5 itself, so nothing below 5 qualifies. That leaves 5 as the deepest
+      common ancestor. Picking 4 would ignore that 4 is not an ancestor of 5, and answering with
+      the root ignores depth.'
+  - question: 'Why is "always segment greedily with the longest word first" wrong for Word Break?'
+    options:
+      - 'Because longest-first works, but it is slow'
+      - 'Because a greedy first match can paint itself into a corner — a later prefix that looks
+        splittable fails after a locally-greedy early choice'
+      - 'Because dictionary words have no lengths'
+      - 'Because segmentation must use the shortest words'
+    answerIndex: 1
+    explanation:
+      'Greedy commits to the first match and never revisits. In "catsandog" with
+      ["cats","dog","sand","and","cat"], taking "cat" early leaves "sandog", which cannot be split —
+      yet no other first word saves it either. The table, by contrast, evaluates every cut and every
+      cell, so a dead end in one branch does not poison the others. Greedy is one path; DP is the
+      whole space.'
+  - question: 'Recap from Day 7: the LCA walk is best written as…'
+    options:
+      - 'an iterative loop with an explicit stack that visits nodes in post-order'
+      - 'a recursion where each node solves its children first and then decides'
+      - 'a breadth-first queue that stops at the first common level'
+      - 'a sort of the nodes by value'
+    answerIndex: 1
+    explanation:
+      'The decision at each node needs the answers from both children, which is the post-order shape
+      — children fully resolved before the node acts. Recursion expresses that directly; an
+      iterative post-order walk works too but demands the bookkeeping. BFS stops at the first common
+      level, which is not the deepest common ancestor, and sorting by value is meaningless for
+      ancestry.'
+problems:
+  - title: 'Lowest Common Ancestor of a Binary Tree'
+    leetcodeId: 236
+    difficulty: 'medium'
+    prompt: |
+      Given a binary tree encoded as a level-order array rootArray (null where a child is missing)
+      and two node values p and q that are guaranteed to appear in the tree, return the VALUE of
+      their lowest common ancestor. The LCA of two nodes is the deepest node that is an ancestor of
+      both; a node counts as its own ancestor. Build the tree from the array first, then find the
+      LCA. The signature is solution(rootArray, p, q).
+      Example: rootArray [3,5,1,6,2,0,8,null,null,7,4], p=5, q=1 → 3; p=5, q=4 → 5; p=6, q=4 → 5.
+    starterCode: |
+      function solution(rootArray, p, q) {
+        // Plan: build the tree from the level-order array (null = missing
+        // child) into nodes { val, left, right }. Then recurse: null node ->
+        // null; node whose value is p or q -> that node; otherwise search
+        // both children. If both children return a node, this node is the
+        // LCA; if only one side finds a target, return that. Return the LCA
+        // node's value.
+        return 0;
+      }
+    testCases:
+      - input:
+          - [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4]
+          - 5
+          - 1
+        expected: 3
+      - input:
+          - [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4]
+          - 5
+          - 4
+        expected: 5
+      - input:
+          - [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4]
+          - 6
+          - 4
+        expected: 5
+      - input:
+          - [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4]
+          - 7
+          - 4
+        expected: 2
+      - input:
+          - [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4]
+          - 0
+          - 8
+        expected: 1
+      - input: [[1, 2], 2, 2]
+        expected: 2
+      - input: [[1, 2, 3], 2, 3]
+        expected: 1
+  - title: 'Word Break'
+    leetcodeId: 139
+    difficulty: 'medium'
+    prompt: |
+      Given a string s and an array of dictionary words wordDict, return true if s can be segmented
+      into a space-separated sequence of one or more dictionary words; a word may be reused. The
+      empty string segments vacuously, so solution("", wordDict) is true. The signature is
+      solution(s, wordDict).
+      Example: s="leetcode", wordDict=["leet","code"] → true; s="catsandog",
+      wordDict=["cats","dog","sand","and","cat"] → false.
+    starterCode: |
+      function solution(s, wordDict) {
+        // Plan: 1D DP. dp[i] = true if the prefix s.slice(0, i) can be
+        // segmented into dictionary words. dp[0] = true (empty prefix).
+        // For each i, try every cut j < i: if dp[j] is true and
+        // s.slice(j, i) is a dictionary word, dp[i] = true. Answer dp.length.
+        return false;
+      }
+    testCases:
+      - input: ['leetcode', ['leet', 'code']]
+        expected: true
+      - input: ['catsandog', ['cats', 'dog', 'sand', 'and', 'cat']]
+        expected: false
+      - input: ['aaaaaaa', ['aaaa', 'aaa']]
+        expected: true
+      - input: ['a', []]
+        expected: false
+      - input: ['catsand', ['cats', 'and', 'sand']]
+        expected: true
+      - input: ['cars', ['car', 'ca', 'rs']]
+        expected: true
+      - input: ['', ['leet']]
+        expected: true
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './27-review-ii.frames';
+
+<DsaVisualizer title="A tree walk and a table fill, side by side" frames={frames} client:idle />
+
+## The one question this page answers
+
+Two tools, one shared spine. Trees and dynamic programming are both recursion over smaller
+structures: a subtree is a smaller tree, a prefix is a smaller string. This page asks one question:
+_can you recall both against harder inputs?_ Lowest Common Ancestor needs a post-order walk — the
+answer appears on the way back up. Word Break needs a table — the answer builds left to right. Same
+recursive instinct, two different directions of resolution.
+
+## Start with an analogy
+
+A family-reunion puzzle. Two cousins want the nearest ancestor they share. You stand at the root of
+the family tree and shout down: every branch reports back who it found. At a node, if the left
+branch found one cousin and the right branch found the other, this node is the meeting point — the
+answer is discovered not while descending, but on the way back up.
+
+A freight-yard puzzle. A long train of cars reads `leetcode`, and you have a placard of valid block
+names: `leet`, `code`. Can you break the train into valid blocks? You do not try every combination
+blindly — you walk the train one car at a time and write, on a card, whether the train _up to this
+car_ can be fully split. Each new card reads the earlier cards.
+
+The shouting tree is LCA recursion. The row of cards is the Word Break table.
+
+## Trees and DP: the same spine, different resolution
+
+Both tools take a big problem and recurse on a strictly smaller one, but they resolve in opposite
+directions:
+
+- **Trees** recurse into _smaller structures that branch_. The base case is an empty node, and the
+  merge step combines two child answers into a parent answer. LCA is the cleanest example: a node
+  cannot know it is the answer until both children have reported.
+- **DP** recurses into _smaller prefixes of the same structure_. The base is the empty prefix, and
+  each cell combines earlier cells that are strictly smaller. Word Break is the cleanest example: a
+  prefix is splittable exactly when an earlier splittable prefix is followed by a dictionary word.
+
+Both are Day 7 recursion wearing different hats. Today's pressure: LCA must also _build_ its tree
+from a flat array, and Word Break must not be fooled into greedy segmentation.
+
+## Lowest Common Ancestor: decide on the way back up
+
+The adapted input is a level-order array, `null` marking a missing child. First rebuild the nodes:
+read values in level order, giving each node a left child then a right child from the queue. Then
+the walk:
+
+1. If the node is `null`, return `null`.
+2. If the node's value is `p` or `q`, return the node — it is a target, and a target is its own
+   ancestor.
+3. Search both children. If **both** return a node, this node is the LCA. If **one** returns a node,
+   pass it up. If neither does, return `null`.
+
+The answer resolves exactly once: at the node where the two halves report a hit each. Watch the
+visualizer walk the tree for `p=5, q=4` — the walk descends left, confirms 4 lives inside 5's
+subtree, and returns 5. Cost: O(n) for one post-order pass; the rebuild is also O(n).
+
+## Word Break: the table fills left to right
+
+`dp[i]` = can the prefix `s[0..i)` be segmented. The base `dp[0]` is `true`. The transition: try
+every cut `j` before `i`; if `dp[j]` is true and `s[j..i)` is a dictionary word, then `dp[i]` is
+true. The final answer is `dp[s.length]`.
+
+The table is what keeps the search honest. A greedy attempt — "grab the longest matching word" — is
+one path through the search space and can dead-end. The table evaluates every cut at every position,
+so a dead end in one branch never poisons another. Watch the visualizer fill `leetcode` with
+`{"leet","code"}`: `dp[4]` lights up when `leet` follows the empty prefix, `dp[8]` when `code`
+follows `dp[4]`. Cost: O(n²) with O(n) space, and each cell is built only from strictly smaller
+ones.
+
+## What this is NOT
+
+| Misconception                                | Truth                                                                                                                                     |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| "LCA needs parent pointers"                  | The post-order recursion reports up from the children; no parent pointer exists, and one walk through the tree is enough.                 |
+| "A node is never its own ancestor"           | By definition a node is an ancestor of itself, which is exactly why the answer can be p when q sits inside p's subtree.                   |
+| "The LCA is the node with the smaller value" | Ancestry is about depth and structure, not value; the recursion finds the meeting point, never a numeric minimum.                         |
+| "Word Break can be solved greedily"          | A locally-greedy first match can dead-end; the table explores every cut, so one blocked branch cannot poison the rest.                    |
+| "DP and tree recursion are unrelated"        | Both recurse on strictly smaller structures; trees merge two branch answers, DP reuses smaller prefix answers — one instinct, two shapes. |
+
+## Why this matters for the rest of the trip
+
+Today proves the recursive backbone of the whole track. The post-order "ask both children, then
+decide" shape is every tree problem you will face — and the "answer a prefix from earlier prefixes"
+shape is every 1D DP. Tomorrow's final sprint mixes the whole sequence — two pointers, windows,
+trees, tables — into a single set of review problems, and the instinct you are recalling today is
+what holds them all together.
+
+Solve the two problems above. For LCA, write the tree rebuild and the recursion separately, then
+trace `p=7, q=4` — the answer is 2, not 4. For Word Break, write the table version and confirm
+`catsandog` is false while `catsand` is true, so you can see the difference a single word makes.

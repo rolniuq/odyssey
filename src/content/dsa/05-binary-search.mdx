@@ -1,0 +1,241 @@
+---
+order: 5
+title: 'Binary Search'
+coreConcept:
+  'Binary search reads the middle of a sorted range and, with one comparison, discards half of it —
+  so finding a value among n sorted items costs O(log n), not O(n).'
+docSource: 'https://en.wikipedia.org/wiki/Binary_search_algorithm'
+docTitle: 'Binary search — Wikipedia'
+difficulty: 'intermediate'
+objectives:
+  - 'Carry the invariant out loud: while the target could still exist, it lives inside [lo, hi]'
+  - 'Discard half per step by comparing mid against the branch that is provably impossible'
+  - 'Reuse the same shape on a rotated array by first locating the half that stayed sorted'
+quiz:
+  - question: 'What does classic binary search assume about the input?'
+    options:
+      - 'That it is sorted, so a comparison at the middle tells you which half can still hold the
+        target'
+      - 'That it is randomly ordered, since any order works'
+      - 'That its length is a power of two'
+      - 'That every element is unique, or the search cannot work'
+    answerIndex: 0
+    explanation:
+      'The entire trick is that sorted order gives a monotone fact: everything left of the middle is
+      smaller than it, everything right is larger. Random order gives you no such signal, powers of
+      two are irrelevant to correctness, and while many classic problems forbid duplicates, binary
+      search can still find a value (or an occurrence) in arrays that repeat.'
+  - question: 'Why is one midpoint comparison "worth" half the array?'
+    options:
+      - 'Because the midpoint splits the range, and sorted order means the target is wholly on one
+        side — the other half becomes provably impossible and dies at once'
+      - 'Because it sorts the two halves first'
+      - 'Because it compares two elements at the same time'
+      - 'Because it keeps a hash map of visited midpoints'
+    answerIndex: 0
+    explanation:
+      'Once you know the middle value relative to the target, every value on one side is already
+      decided — smaller than the target (if mid was smaller) or larger (if it was larger) — so that
+      entire side can be thrown away without another look. It is not sorting, it is not parallel
+      comparison, and no auxiliary memory is involved.'
+  - question: 'If nums[mid] is smaller than the target, which region survives?'
+    options:
+      - 'The right half — everything at or left of mid is already too small, so only indices mid + 1
+        … hi remain candidates'
+      - 'The left half, because smaller means it must be left'
+      - 'Only mid itself'
+      - 'The whole array, to be safe'
+    answerIndex: 0
+    explanation:
+      'Sorted ascending means nums[lo..mid] are all ≤ nums[mid] < target, so none of them can be the
+      target; the search continues in mid + 1 .. hi. Keeping the left half or everything would
+      re-examine values already proven too small, and keeping only mid would drop the correct half
+      whenever the target is to the right.'
+  - question: 'When does binary search conclude that the target is absent?'
+    options:
+      - 'When lo exceeds hi — the live range has become empty, so the target cannot be anywhere'
+      - 'When mid lands on an odd index'
+      - 'When the array length is a prime number'
+      - 'When it has examined every single index'
+    answerIndex: 0
+    explanation:
+      'The invariant is "the target, if present, is inside [lo, hi]"; the instant lo > hi there is
+      no interval left, which proves absence. Whether mid is odd or the length is prime is noise,
+      and "examined every index" is exactly the O(n) scan binary search exists to avoid.'
+  - question: 'What does the "halving each step" recurrence actually produce?'
+    options:
+      - 'About n comparisons, since the range shrinks linearly'
+      - 'About log₂(n) comparisons — each step halves the range, and halving n to 1 takes log₂(n)
+        steps'
+      - 'About n·log(n) comparisons'
+      - 'Exactly one comparison, always'
+    answerIndex: 1
+    explanation:
+      'The range shrinks as n → n/2 → n/4 → … → 1, which is a logarithm of steps: log₂(n). That is
+      the entire difference between binary search and a linear scan, and it is why "find the target"
+      on a million elements costs about 20 comparisons, not a million.'
+  - question: 'In a rotated array, why is at least one half always sorted?'
+    options:
+      - 'A rotation splits the original sorted array at one pivot, so both the segment left of the
+        pivot and the segment right of it are each ascending runs on their own'
+      - 'Because rotation secretly sorts the array again'
+      - 'Because both halves are always equal length'
+      - 'Because the array has no duplicate values'
+    answerIndex: 0
+    explanation:
+      'Rotating moves one contiguous chunk from the front to the back; the remaining original chunk
+      and the moved chunk are each still in their original ascending order. That gives us a sorted
+      side to lean on — the whole point of the rotated search is to identify which side, then use
+      ordinary sorted logic inside it. Rotation does not re-sort, halves need not be equal, and
+      uniqueness is a guarantee of the problem statement, not the source of the insight.'
+  - question: 'When is binary search the wrong tool?'
+    options:
+      - 'Never — it is always the right tool'
+      - 'When you have no ordering to exploit (no way to prove one side impossible), or when the
+        input is so small that log n vs n makes no practical difference'
+      - 'When the target is a string'
+      - 'When the array happens to be sorted'
+    answerIndex: 1
+    explanation:
+      'Without a monotone rule, a midpoint comparison cannot discard a side — the core trick is
+      gone. And for tiny inputs the constant factors matter more than the asymptotic gap, so the
+      elegance buys nothing. Strings are searchable if orderable; a sorted array is exactly when
+      binary search IS appropriate.'
+problems:
+  - title: 'Binary Search'
+    leetcodeId: 704
+    difficulty: 'easy'
+    prompt: |
+      Given an array of integers nums which is sorted in ascending order, and an integer target,
+      return the index of target in nums, or -1 if it is not present. The solution must run in
+      O(log n) time.
+      Examples: [-1, 0, 3, 5, 9, 12], 9 → 4; [-1, 0, 3, 5, 9, 12], 2 → -1.
+    starterCode: |
+      function solution(nums, target) {
+        // Plan: lo and hi bound the live range. Read mid; if it is the target,
+        // return mid; if mid < target, drop everything at or left of mid; else
+        // drop everything at or right of mid. lo > hi => return -1.
+        return -1;
+      }
+    testCases:
+      - input: [[-1, 0, 3, 5, 9, 12], 9]
+        expected: 4
+      - input: [[-1, 0, 3, 5, 9, 12], 2]
+        expected: -1
+      - input: [[5], 5]
+        expected: 0
+      - input: [[5], 4]
+        expected: -1
+      - input: [[], 7]
+        expected: -1
+      - input: [[1, 2, 3, 4, 5], 1]
+        expected: 0
+      - input: [[1, 2, 3, 4, 5], 5]
+        expected: 4
+  - title: 'Search in Rotated Sorted Array'
+    leetcodeId: 33
+    difficulty: 'medium'
+    prompt: |
+      There is an integer array nums sorted in ascending order (with distinct values) that has been
+      rotated at an unknown pivot. Given target, return its index, or -1 if it is not present. The
+      solution must run in O(log n) time.
+      Examples: [4, 5, 6, 7, 0, 1, 2], 0 → 4; [4, 5, 6, 7, 0, 1, 2], 3 → -1.
+    starterCode: |
+      function solution(nums, target) {
+        // Plan: binary search, but first decide which half is still sorted by
+        // comparing nums[mid] with nums[hi]. If the target lies inside the
+        // sorted half's bounds, search it; otherwise discard it and go to the
+        // other half. Empty range => -1.
+        return -1;
+      }
+    testCases:
+      - input: [[4, 5, 6, 7, 0, 1, 2], 0]
+        expected: 4
+      - input: [[4, 5, 6, 7, 0, 1, 2], 3]
+        expected: -1
+      - input: [[1], 0]
+        expected: -1
+      - input: [[1], 1]
+        expected: 0
+      - input: [[1, 3], 3]
+        expected: 1
+      - input: [[3, 1], 3]
+        expected: 0
+      - input: [[5, 1, 3], 5]
+        expected: 0
+      - input: [[1, 2], 0]
+        expected: -1
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './05-binary-search.frames';
+
+<DsaVisualizer title="The range that shrinks by half" frames={frames} client:idle />
+
+## The one question this page answers
+
+You have a sorted list and a target. The lazy read is to walk the list comparing until you find it —
+**O(n)** for one look-up, and O(n) again for the next. Binary search asks: _can one comparison
+between the target and a single element rule out a whole side of the list?_ Because the list is
+sorted, yes — and the price drops to **O(log n)**.
+
+## Start with an analogy
+
+The children's game "guess my number between 1 and 100". You do not guess 1, 2, 3… up the line; you
+guess 50. Too high? Everything above 50 dies at once. Too low? Everything below dies. The next guess
+splits whatever survives, and within a handful of guesses you own the number — because every answer
+discards half the remaining range in one move.
+
+The list is the range, `lo` and `hi` are its edges, and each guess is the midpoint.
+
+## The invariant and the cut
+
+The rule to repeat out loud: **the target, if it is in the list at all, lives inside `[lo, hi]`**.
+That invariant is the whole algorithm. While `lo <= hi`:
+
+1. Read the midpoint `mid = (lo + hi) / 2` (integer).
+2. `nums[mid] === target`? Return `mid`.
+3. `nums[mid] < target`? Every value at or left of `mid` is too small — set `lo = mid + 1`.
+4. Otherwise every value at or right of `mid` is too big — set `hi = mid - 1`.
+
+When `lo` overtakes `hi`, the invariant is empty, and the honest answer is `-1`.
+
+### Why the discard is never a mistake
+
+Sorted order makes the discard monotone: if the middle value is smaller than the target, then
+everything to its left is smaller still — none of them can be the target, so dropping them proves
+nothing. Same on the other side. Each step throws away half the range without looking at it, which
+is why the loop runs `log₂(n)` times and not `n`.
+
+### The rotated twist
+
+A rotated array (sorted, then moved at some pivot, e.g. `[4,5,6,7,0,1,2]`) is not sorted globally —
+but it is sorted in **two ascending runs**, so at every step at least one side of `mid` is a normal
+sorted half. The refined loop checks which side that is (compare `nums[mid]` against `nums[hi]`),
+then uses ordinary sorted bounds to decide whether the target could be inside it:
+
+- right half sorted: `nums[mid] < target ≤ nums[hi]`? search right; else left,
+- left half sorted: `nums[lo] ≤ target < nums[mid]`? search left; else right.
+
+Same halving, one extra branch to find the sorted side first. Distinct values guarantee the "at
+least one sorted half" property cleanly, which is why the classic problem states them.
+
+## What this is NOT
+
+| Misconception                                               | Truth                                                                                                                              |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| "Binary search finds things faster by luck"                 | It works because ordering makes the discard provable, not because of lucky guesses.                                                |
+| "It requires the array to be indexable AND already ordered" | Ordered, yes — and random access, yes. That is the price of log n; a linked list can never binary-search without a jump structure. |
+| "It keeps the whole range until the very end"               | It deliberately throws away halves as it goes; only `[lo, hi]` ever remains live.                                                  |
+| "Rotated search needs a different algorithm"                | It is the same binary search plus one branch that locates the still-sorted half before applying normal bounds.                     |
+
+## Why this matters for the rest of the trip
+
+Binary search is the starting pistol for a whole class of "guess an answer, then verify" problems:
+finding the smallest feasible value, square roots by search, and "peak index" problems all reuse the
+halving rhythm. And the shape recurs constantly in the trees days — a binary search tree is binary
+search applied at every node. Master the `[lo, hi]` invariant now and every one of those later pages
+gets cheaper.
+
+Solve the two problems above before moving on — then try _Find First and Last Position of Element in
+Sorted Array_ and _Find Minimum in Rotated Sorted Array_ on LeetCode to turn the rhythm into reflex.

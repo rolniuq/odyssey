@@ -1,0 +1,231 @@
+---
+order: 12
+title: 'Dynamic Programming I: answers that build on answers'
+coreConcept:
+  'A dynamic program breaks a question into overlapping subquestions, answers each once, and reuses
+  the answer instead of recomputing it. The three ingredients — state, transition, base case — turn
+  "what is the best way to do this whole thing?" into a table you fill left to right.'
+docSource: 'https://www.geeksforgeeks.org/dynamic-programming/'
+docTitle: 'Dynamic Programming — GeeksforGeeks'
+difficulty: 'intermediate'
+objectives:
+  - 'Name the three ingredients of any DP: the state, the transition (recurrence), and the base case'
+  - 'Fill a 1D table for House Robber and read the answer from the final cell'
+  - 'Use an amount-indexed table for Coin Change, with Infinity as the sentinel for impossible sums'
+quiz:
+  - question: 'What are the three ingredients every dynamic program needs?'
+    options:
+      - 'A loop, a nested loop, and a print statement'
+      - 'The state (what a table cell means), the transition (how one cell derives from earlier
+        cells), and the base case (the cells computed by hand)'
+      - 'A greedy rule, a heap, and a sort'
+      - 'Recursion, a hash map, and a second array'
+    answerIndex: 1
+    explanation:
+      'State names what each answer is "the answer to"; transition says how to build it from smaller
+      answers; base case stops the building at the smallest, hand-computable cells. Missing any one
+      leaves a hole: a table without a state is meaningless, a state without a transition cannot
+      fill, and no base means infinite descent.'
+  - question: 'In House Robber, what does dp[i] store?'
+    options:
+      - 'The value of house i'
+      - 'The best loot among houses 0..i while obeying the no-adjacent rule'
+      - 'The number of houses robbed so far'
+      - 'The loot of every possible robbery plan, stored in a tree'
+    answerIndex: 1
+    explanation:
+      'dp[i] is an optimum over a growing prefix: the best you can do with the first i houses. That
+      prefix reading is what makes each cell a subquestion, and the final cell is the answer to the
+      original question, which is the whole trick of DP.'
+  - question: 'Why does House Robber need a special base at index 1?'
+    options:
+      - 'Because houses are numbered oddly'
+      - 'Because the recurrence dp[i] = max(dp[i-1], dp[i-2] + nums[i]) would read dp[-1] at i = 1,
+        which does not exist — so dp[1] is computed by hand as max(nums[0], nums[1])'
+      - 'Because house 1 is always skipped'
+      - 'Because the table is 1-indexed'
+    answerIndex: 1
+    explanation:
+      'dp[0] = nums[0] handles one house, but the very next cell needs a two-house answer and its
+      recurrence would reference an index one before the array. Manually setting dp[1] = max of the
+      two houses seals that edge and lets the loop run cleanly from i = 2 onward.'
+  - question: 'In Coin Change, why does the table start at Infinity instead of 0?'
+    options:
+      - 'Because coins are expensive'
+      - 'Infinity marks "no way to make this amount yet"; only dp[0] = 0 is truly known, and any
+        candidate must beat Infinity to be recorded. If a cell survives as Infinity, the amount is
+        impossible and the answer is -1'
+      - 'Because Infinity sorts last in JavaScript'
+      - 'Because amounts must be large'
+    answerIndex: 1
+    explanation:
+      'The sentinel distinguishes "uncomputed" from "computed as 0 coins". A min over coins starting
+      at 0 would wrongly claim every amount needs zero coins; starting at Infinity forces a real
+      candidate to prove itself, and a final Infinity is the honest signal for impossible.'
+  - question: 'Why does the Coin Change recurrence allow reusing the same coin freely?'
+    options:
+      - 'Because coins are infinite, so the table is indexed by amount, not by how many coins were
+        used — dp[i - c] + 1 simply assumes the coin c was already available for the earlier amount'
+      - 'Because the array is sorted'
+      - 'Because Infinity prevents reuse'
+      - 'Because the state records the coin index'
+    answerIndex: 0
+    explanation:
+      'The state is the amount, and every amount considers every coin again, so nothing remembers a
+      "last used coin". Reuse is automatic: dp[10] can come from dp[8] via a 2-coin even if dp[8]
+      itself used a 2. Indexing by coin would be a different, bounded-knapsack problem.'
+  - question: 'Why is filling the amount table ascending (dp[0], dp[1], ...) the right order?'
+    options:
+      - 'Because every transition dp[i] = dp[i - c] + 1 reads a smaller amount, which is already
+        final when the loop reaches i'
+      - 'Because JavaScript arrays prefer ascending'
+      - 'Because descending wastes memory'
+      - 'Because coins are sorted descending'
+    answerIndex: 0
+    explanation:
+      'Every dependency points strictly downward in the table: amount i leans on i - c for a
+      positive c, and i - c is smaller than i. Fill ascending and each cell is computed once from
+      final values — the "already answered" promise that separates DP from repeated recursion.'
+  - question: 'How does DP differ from memoized recursion?'
+    options:
+      - 'They are identical; DP is always top-down'
+      - 'Both reuse subanswers, but memoized recursion is top-down (compute on demand) while DP
+        tables are usually bottom-up (fill smallest first). Same recurrence, different engine'
+      - 'DP never reuses answers'
+      - 'Memoization stores a table while DP stores a tree'
+    answerIndex: 1
+    explanation:
+      'The core idea is shared: answer a subquestion once. The difference is who asks first.
+      Memoization lets the top question pull answers downward; a DP table pushes them upward in
+      dependency order. One suits problems where you only need a few states, the other where you
+      need them all — the recurrence is the same either way.'
+problems:
+  - title: 'House Robber'
+    leetcodeId: 198
+    difficulty: 'medium'
+    prompt: |
+      You are a burglar planning a night of work along one street. Each house hides nums[i] dollars,
+      but robbing two adjacent houses triggers the alarm. Return the maximum amount you can steal
+      without robbing adjacent houses.
+      Examples: [2,7,9,3,1] → 12 (rob 2 + 9 + 1); [1,2,3,1] → 4 (rob 1 + 3).
+    starterCode: |
+      function solution(nums) {
+        // Plan: dp[i] = best loot among houses 0..i. Base cases:
+        // dp[0] = nums[0]; dp[1] = max(nums[0], nums[1]). Then for i >= 2:
+        // dp[i] = max(dp[i-1], dp[i-2] + nums[i]). Answer dp[nums.length-1].
+        return 0;
+      }
+    testCases:
+      - input: [[2, 7, 9, 3, 1]]
+        expected: 12
+      - input: [[1, 2, 3, 1]]
+        expected: 4
+      - input: [[2, 1, 1, 2]]
+        expected: 4
+      - input: [[5, 3, 4, 11, 2]]
+        expected: 16
+      - input: [[2, 3, 2]]
+        expected: 4
+      - input: [[0]]
+        expected: 0
+  - title: 'Coin Change'
+    leetcodeId: 322
+    difficulty: 'medium'
+    prompt: |
+      You have an infinite supply of coins with denominations from the integer array coins, and a
+      target integer amount. Return the fewest number of coins needed to make up that amount, or -1
+      if the amount cannot be made.
+      Examples: coins=[1,2,5], amount=11 → 3 (5 + 5 + 1); coins=[2], amount=3 → -1.
+    starterCode: |
+      function solution(coins, amount) {
+        // Plan: dp[i] = fewest coins to make amount i. dp[0] = 0; every
+        // other cell starts at Infinity. For i = 1..amount, for each coin
+        // c <= i, try dp[i - c] + 1. Answer dp[amount], or -1 if Infinity.
+        return 0;
+      }
+    testCases:
+      - input: [[1, 2, 5], 11]
+        expected: 3
+      - input: [[2], 3]
+        expected: -1
+      - input: [[1], 0]
+        expected: 0
+      - input: [[1], 2]
+        expected: 2
+      - input: [[2, 5, 10, 1], 27]
+        expected: 4
+      - input: [[1, 3, 4, 5], 7]
+        expected: 2
+      - input: [[3, 5], 7]
+        expected: -1
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './12-dp-1d.frames';
+
+<DsaVisualizer title="The loot table, filled one house at a time" frames={frames} client:idle />
+
+## The one question this page answers
+
+Some questions feel like they ask "what is the single best plan?" — and the naive answer, _try every
+plan_, explodes in your face. Dynamic programming asks a cheaper question: _can I write down the
+answer to a smaller version of the same question, and then build the bigger answer from those
+smaller answers?_ For the street of houses, the "smaller version" is "the best loot using only the
+first i houses." Answer that for every i once, and the final i answers the whole street.
+
+## Start with an analogy
+
+A curator hangs paintings in a long gallery, one per wall, and must maximize total value — but never
+two paintings on adjacent walls (the guards get confused). The naive curator enumerates every subset
+of walls: exponential. The DP curator does something quieter: they walk the gallery and, at each
+wall, write on a card "best value achievable using up to and including this wall." At wall 3 the
+card says: _either we skipped wall 3_ (then the best is card 2) _or we hung it_ (then wall 2 is
+forbidden, so the best is card 1 plus this painting's value).
+
+Each card is built from two earlier cards. No plan is ever enumerated — just combined. The gallery
+is your array, and the cards are the `dp` table.
+
+## The three ingredients
+
+Every DP is three things, named before any code:
+
+1. **State** — what a cell means. Here: `dp[i]` = best loot among houses `0..i` under the rule.
+2. **Transition** — how a cell derives from smaller cells. `dp[i] = max(dp[i-1], dp[i-2] + nums[i])`
+   — skip house `i`, or rob it and add the best of two houses back.
+3. **Base case** — the cells you fill by hand. `dp[0] = nums[0]`, `dp[1] = max(nums[0], nums[1])`.
+
+Watch the visualizer fill `[2, 7, 9, 3, 1]` → `[2, 7, 11, 11, 12]`. Every cell is one `max` over two
+answers that already exist — O(n) time, O(n) space.
+
+## Coin Change: the table indexed by amount
+
+Coin Change is the same machinery with a different ruler. "What is the best loot among the first i
+houses" becomes "what is the fewest coins to make amount i?" — so the state is the amount, and the
+table is indexed `0..amount` instead of by prefix.
+
+Transition: `dp[i] = min over coins c of (dp[i - c] + 1)`. Base: `dp[0] = 0`. Everything else starts
+at **Infinity** — the sentinel for "not possible yet." Fill ascending so every `dp[i - c]` is
+already final, and when you finish, `dp[amount]` is the answer — or `-1` if it survived as Infinity.
+
+The recurrence reuses coins freely because the state forgets which coin was used last. That is what
+"unbounded" means here, and it is why the greedy habit fails while DP does not: DP tries every
+denomination at every amount instead of committing to one.
+
+## What this is NOT
+
+| Misconception                                | Truth                                                                                                                            |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| "DP is recursion with extra steps"           | Recursion decomposes; DP _orders_ the computation so each subanswer is computed exactly once and reused. The table is the point. |
+| "The table just stores intermediate results" | It stores the answers to _subproblems of the same shape_ — each cell answers a smaller version of the original question.         |
+| "Any fill order works"                       | Cells must be filled so every dependency is already final. Amount tables go ascending; a wrong order reads garbage.              |
+| "dp[1] can use the main recurrence"          | It would read dp[-1]. One-indexed bases are a real edge case — handle them by hand before the loop, or by padding the table.     |
+
+## Why this matters for the rest of the trip
+
+This page's three ingredients are the same three you will use for every DP that follows: tomorrow
+the state gains a second dimension (two strings, a grid); later it becomes shortest paths and edit
+distance. The skill that transfers is not the table — it is the act of naming a state, writing the
+recurrence, and checking the bases. Do that, and the fill order and the loops write themselves.
+
+Solve the two problems above. For each, write down the three ingredients _before_ writing a single
+line of code — that discipline is worth more than the solutions.

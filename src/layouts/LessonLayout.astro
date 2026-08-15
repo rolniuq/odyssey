@@ -50,9 +50,7 @@ const difficultyBadge: Record<string, string> = {
     </div>
 
     <div class="mt-4">
-      <p
-        class="text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500"
-      >
+      <p class="text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500">
         After this page you can explain your own words…
       </p>
       <ul class="mt-2 space-y-1.5">
@@ -85,7 +83,7 @@ const difficultyBadge: Record<string, string> = {
 
   <!-- Quiz island -->
   <section class="mt-12">
-    <Quiz questions={lesson.data.quiz} />
+    <Quiz questions={lesson.data.quiz} client:idle />
   </section>
 
   <hr class="my-10 border-slate-200 dark:border-slate-800" />
@@ -103,16 +101,16 @@ const difficultyBadge: Record<string, string> = {
         {docTitle} (PostgreSQL official docs)
       </a>
     </p>
-    <nav class="flex flex-wrap justify-between gap-4 border-t border-slate-200 pt-6 dark:border-slate-800">
+    <nav
+      class="flex flex-wrap justify-between gap-4 border-t border-slate-200 pt-6 dark:border-slate-800"
+    >
       {
         prev ? (
           <a href={`${base}lessons/${prev.id}`} class="group max-w-xs">
             <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500">
               Previous lesson
             </span>
-            <span
-              class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600 dark:text-slate-300 dark:group-hover:text-indigo-400"
-            >
+            <span class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600 dark:text-slate-300 dark:group-hover:text-indigo-400">
               ← {prev.data.title}
             </span>
           </a>
@@ -126,9 +124,7 @@ const difficultyBadge: Record<string, string> = {
             <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500">
               Next lesson
             </span>
-            <span
-              class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600 dark:text-slate-300 dark:group-hover:text-indigo-400"
-            >
+            <span class="block text-sm font-medium text-slate-700 group-hover:text-indigo-600 dark:text-slate-300 dark:group-hover:text-indigo-400">
               {next.data.title} →
             </span>
           </a>

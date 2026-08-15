@@ -101,9 +101,15 @@ export default function Quiz({ questions }: QuizProps) {
           let cls =
             'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700 dark:border-slate-700 dark:hover:bg-indigo-500/10 dark:text-slate-300';
           if (picked !== null) {
-            if (isAnswer) cls = 'border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-500 dark:bg-emerald-500/15 dark:text-emerald-200';
-            else if (isPicked) cls = 'border-rose-400 bg-rose-50 text-rose-700 dark:border-rose-500 dark:bg-rose-500/15 dark:text-rose-200';
-            else cls = 'border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500';
+            if (isAnswer)
+              cls =
+                'border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-500 dark:bg-emerald-500/15 dark:text-emerald-200';
+            else if (isPicked)
+              cls =
+                'border-rose-400 bg-rose-50 text-rose-700 dark:border-rose-500 dark:bg-rose-500/15 dark:text-rose-200';
+            else
+              cls =
+                'border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500';
           }
 
           return (

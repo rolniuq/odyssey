@@ -2,37 +2,58 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
-/**
- * One official PostgreSQL doc = one lesson.
- * A lesson teaches exactly ONE concept, deeply.
- */
+const quizSchema = z.array(
+  z.object({
+    question: z.string(),
+    options: z.array(z.string()),
+    answerIndex: z.number().int().min(0),
+    explanation: z.string(),
+  })
+);
+
+const difficultySchema = z.enum(['beginner', 'intermediate', 'advanced']);
+
+const problemSchema = z.object({
+  title: z.string(),
+  leetcodeId: z.number().int().positive(),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  prompt: z.string(),
+  starterCode: z.string(),
+  testCases: z.array(
+    z.object({
+      input: z.array(z.any()),
+      expected: z.any(),
+    })
+  ),
+});
+
 const lessons = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/lessons' }),
   schema: z.object({
-    // Used for ordering on the index page / prev-next navigation.
     order: z.number(),
     title: z.string(),
-    // Direct link to the official PostgreSQL documentation this lesson derives from.
     docSource: z.string().url(),
     docTitle: z.string(),
-    difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
-    // "After this page, you can explain in your own words ..."
+    difficulty: difficultySchema,
     objectives: z.array(z.string()),
-    // The one and only concept this page teaches.
     coreConcept: z.string(),
-    quiz: z
-      .array(
-        z.object({
-          question: z.string(),
-          options: z.array(z.string()),
-          // Index of the correct option.
-          answerIndex: z.number().int().min(0),
-          // Why this answer is correct (and, where useful, why the others are not).
-          explanation: z.string(),
-        })
-      )
-      .default([]),
+    quiz: quizSchema.default([]),
   }),
 });
 
-export const collections = { lessons };
+const dsa = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/dsa' }),
+  schema: z.object({
+    order: z.number(),
+    title: z.string(),
+    coreConcept: z.string(),
+    docSource: z.string().url(),
+    docTitle: z.string(),
+    difficulty: difficultySchema,
+    objectives: z.array(z.string()),
+    quiz: quizSchema.default([]),
+    problems: z.array(problemSchema).default([]),
+  }),
+});
+
+export const collections = { lessons, dsa };

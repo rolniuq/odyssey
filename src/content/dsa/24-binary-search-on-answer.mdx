@@ -1,0 +1,213 @@
+---
+order: 24
+title: 'Binary search on the answer, not the data'
+coreConcept:
+  'Binary search does not need a sorted array — it needs a monotone yes/no predicate over a range of
+  candidate answers. When "is this fast enough?" or "is this big enough?" flips from false to true
+  exactly once, you can binary search the answer space itself, and solve Koko-style problems in
+  O(n log range) instead of scanning every candidate.'
+docSource: 'https://www.geeksforgeeks.org/binary-search/'
+docTitle: 'Binary Search — GeeksforGeeks'
+difficulty: 'advanced'
+objectives:
+  - 'Generalize binary search: the sorted array is a special case of a monotone predicate over a
+    search space'
+  - 'Formulate a feasibility check — sum(ceil(pile / speed)) ≤ h — that answers "can speed k finish
+    in time?"'
+  - 'Argue monotonicity: once a speed works, every faster speed works, so the predicate flips from
+    false to true exactly once'
+  - 'Carry lo and hi over the answer range and converge on the smallest feasible value'
+  - 'Price the search: O(n) per feasibility check times O(log range) checks, versus O(range) naive
+    scans'
+quiz:
+  - question: 'What is the real requirement for binary search to work?'
+    options:
+      - 'A sorted array'
+      - 'A monotone predicate over an ordered search space — a test that flips from false to true
+        exactly once, which a sorted array is just one example of'
+      - 'A unique answer'
+      - 'An array of integers'
+    answerIndex: 1
+    explanation:
+      'The essence is the monotone flip, not the container. Classic binary search works on a sorted
+      array because "arr[mid] ≥ target" is a predicate that flips exactly once; Koko-style problems
+      get the same power from "speed k is fast enough", which also flips exactly once as k grows.
+      A sorted array is the easiest instance of that pattern, not its definition — and neither
+      uniqueness nor integer-ness is what makes the halving legal.'
+  - question: 'In Koko Eating Bananas, why is the answer space only speeds from 1 to the largest
+    pile?'
+    options:
+      - 'Because Koko dislikes fast speeds'
+      - 'Because speed = largest pile always finishes one pile per hour, and the piles have to be
+        eaten one at a time, so the maximum useful speed is exactly the largest pile; any faster
+        speed is indistinguishable from it'
+      - 'Because h limits the speed'
+      - 'Because speeds must be even'
+    answerIndex: 1
+    explanation:
+      'Eating is one pile at a time, so at speed ≥ max(pile) every pile costs exactly one hour and no
+      faster speed changes the schedule — the predicate plateaus. Therefore the candidate range
+      [1, max] contains every distinct behavior, and halving within it is safe. Koko has no speed
+      preference, h is what the predicate tests (not a cap on the range), and parity is irrelevant.'
+  - question: 'When a speed k is feasible (fits in h hours), which speeds can you rule out?'
+    options:
+      - 'All speeds slower than k — because the predicate is monotone, anything slower is also
+        infeasible'
+      - 'All speeds faster than k'
+      - 'Only speed k itself'
+      - 'No speeds at all'
+    answerIndex: 0
+    explanation:
+      'Feasible means "slow enough to still fit"; slowing down only adds hours, so any slower speed
+      is also infeasible. The monotone property means the search can throw away the entire lower
+      half and look at faster candidates only — that is the halving. Faster speeds are what you still
+      might rule out later, but ruling out k alone would make the search linear.'
+  - question: 'Why is a speed of exactly max(pile) always feasible?'
+    options:
+      - 'Because it equals the number of piles'
+      - 'Because each pile takes exactly one hour at that speed, so the total is the number of piles,
+        which is never more than h (the problem guarantees h ≥ piles.length)'
+      - 'Because the piles are sorted'
+      - 'Because h is always at least max(pile)'
+    answerIndex: 1
+    explanation:
+      'At speed = max(pile) the largest pile costs ceil(max/max) = 1 hour and every smaller pile
+      costs 1 hour too (ceil(x/max) = 1 for any x ≤ max), so the total is exactly piles.length
+      hours. The problem guarantees h ≥ piles.length, so the bound is feasible and the search range
+      always contains a valid answer. It is the pile count, not a sort, that guarantees this, and h
+      bounds the predicate, not the speed range.'
+  - question: 'A feasible speed above the answer is confirmed working; why does the search keep
+    halving left instead of stopping?'
+    options:
+      - 'Because binary search wants the smallest feasible value, and a working speed is an upper
+        bound, not the answer — hi shrinks toward lo until they meet'
+      - 'Because the answer is the largest feasible speed'
+      - 'Because feasible speeds are infeasible'
+      - 'Because the search is random'
+    answerIndex: 0
+    explanation:
+      'The predicate gives a half-line of working speeds, and the problem asks for its leftmost
+      point — the smallest speed that works. Every feasible probe tightens the upper bound (hi), and
+      every infeasible probe raises the lower bound (lo); the answer is where they collide. If the
+      goal were the largest feasible speed, hi would never shrink toward lo, and the other options
+      contradict the monotone setup entirely.'
+  - question: 'What is the running time of Koko-Eating-Bananas binary search?'
+    options:
+      - 'O(n log range) — each of the O(log max(pile)) feasibility checks scans all n piles to sum
+        their ceil hours'
+      - 'O(log n)'
+      - 'O(n)'
+      - 'O(n × max(pile))'
+    answerIndex: 0
+    explanation:
+      'Two costs stack: each check walks every pile to compute sum(ceil(pile/k)), which is O(n), and
+      binary search runs O(log max(pile)) such checks, because the range is the speed space, not the
+      pile count. That is why it beats the naive O(max(pile) × n) scan of every speed. The O(log n)
+      and O(n) options each miss one half of the composition, and the last one is the brute force
+      this whole page exists to avoid.'
+problems:
+  - title: 'Koko Eating Bananas'
+    leetcodeId: 875
+    difficulty: 'medium'
+    prompt: |
+      Koko loves bananas. There are n piles, pile i has piles[i] bananas, and the guards are away for
+      h hours. Each hour Koko picks one pile and eats k bananas from it (fewer than k if the pile has
+      fewer); she never moves to another pile within an hour. Return the minimum integer speed k such
+      that she can eat all bananas within h hours. Binary search k from 1 to max(piles), testing
+      feasible(k) = sum over piles of ceil(pile / k) <= h. The signature is solution(piles, h).
+      Example: piles [3,6,7,11], h = 8 → 4.
+    starterCode: |
+      function solution(piles, h) {
+        // Plan: lo = 1, hi = max(piles). While lo < hi: mid = midpoint.
+        // feasible(mid) = sum(ceil(pile / mid)) <= h. If feasible, hi =
+        // mid (maybe smaller works); else lo = mid + 1 (too slow). Return lo.
+        let lo = 1;
+        let hi = Math.max(...piles);
+        return lo;
+      }
+    testCases:
+      - input: [[3, 6, 7, 11], 8]
+        expected: 4
+      - input: [[30, 11, 23, 4, 20], 5]
+        expected: 30
+      - input: [[30, 11, 23, 4, 20], 6]
+        expected: 23
+      - input: [[1], 1]
+        expected: 1
+      - input: [[312884470], 312884469]
+        expected: 2
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './24-binary-search-on-answer.frames';
+
+<DsaVisualizer
+  title="Halving the speed space to find the minimum that works"
+  frames={frames}
+  client:idle
+/>
+
+## The one question this page answers
+
+The usual binary search question is "where in this sorted array is my value?" This page answers a
+deeper one: _what if the thing I am searching is not a value in an array at all, but a choice of
+answer?_ Koko's problem is not "find a pile" but "find the smallest speed that fits in the time."
+The leap is realizing that speeds form an ordered range, that "fast enough" is a predicate that
+flips from false to true exactly once, and that binary search halves on that flip — O(n log range)
+instead of trying every speed.
+
+## Start with an analogy
+
+A thermostat hunt. You know the room is too cold at 15° and too hot at 30°, and somewhere between
+the perfect temperature flips from "too cold" to "too hot" — never back again. You do not try every
+degree. You set 22°, feel the room, and throw away half the range: too hot means the answer is below
+22°, too cold means it is above. Each trial halves the remaining degrees.
+
+The degrees are the **answer space**, the too-cold/too-hot test is the **feasibility check**, and
+the flip that never reverses is the **monotone predicate**.
+
+## From sorted array to sorted answers
+
+Binary search has always been about a monotone predicate. In a sorted array, `arr[mid] ≥ target` is
+true at the target and everywhere after — a single flip. Koko's version is the same shape:
+
+- The **search space** is speeds `1 .. max(piles)`, ordered from slow to fast.
+- The **predicate** is `feasible(k) = sum(ceil(pile / k)) ≤ h`.
+- **Monotonicity:** if speed `k` fits in `h` hours, every faster speed fits too — speeding up only
+  removes hours. So `feasible` is `false, false, …, true, true`, and the answer is the first `true`.
+
+## The search, step by step
+
+1. `lo = 1`, `hi = max(piles)` — the answer is guaranteed to live in here (speed = max always
+   works).
+2. `mid = floor((lo + hi) / 2)`.
+3. Compute `sum(ceil(pile / mid))`. If it is `≤ h`: `hi = mid` (mid works, maybe smaller works).
+   Else: `lo = mid + 1` (mid is too slow).
+4. Repeat until `lo === hi`; that value is the smallest feasible speed.
+
+The visualizer runs the whole search for `piles = [3,6,7,11], h = 8`: mid 6 feasible → hi 6; mid 3
+too slow → lo 4; mid 5 feasible → hi 5; mid 4 feasible → hi 4; lo meets hi at 4. Each halving
+removes half the remaining speeds, and each check costs a pass over all piles: O(n log max(pile)).
+
+## What this is NOT
+
+| Misconception                                        | Truth                                                                                                                             |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| "Binary search needs a sorted array"                 | It needs a monotone predicate over an ordered space; the sorted array is one instance, the speed range is another.                |
+| "Feasible answers are the whole range"               | They are a half-line — everything from the answer up. The job is to find the leftmost point of that half-line.                    |
+| "The answer is the maximum feasible speed"           | It is the minimum; fast speeds trivially work, so the interesting boundary is the slowest speed that still fits.                  |
+| "ceil(pile / k) is optional precision"               | Koko finishes a pile within the hour she starts it; rounding up is the entire model of time, and skipping it gives wrong answers. |
+| "Binary search on answer is slower than brute force" | The brute force tests every speed (O(max × n)); the search tests O(log max) speeds, a colossal saving at large pile sizes.        |
+
+## Why this matters for the rest of the trip
+
+"Binary search the answer" is the Swiss army knife for minimax and feasibility problems: aggressive
+cows, split-array-largest-sum, the smallest divisor, and capacity planning all fit the same mold —
+find the boundary where a cheap predicate flips. It also completes a theme this track has been
+building since binary search proper: make the world monotone, then halve. The habit to take away is
+to ask, when a problem sounds like "minimize X such that Y is achievable", whether Y-as-a-predicate
+is monotone in X — if it is, you are one binary search away from the answer.
+
+Solve the problem above. Write the feasibility function first and test it by hand on `[3,6,7,11]` at
+speeds 3, 4 and 5 before you trust the search — and then convince yourself why `hi = mid` (not
+`mid − 1`) is correct when a probe is feasible.

@@ -1,62 +1,163 @@
 ---
 {
-  "order": 6,
-  "title": "Reading Rows Back with SELECT",
-  "coreConcept": "The SELECT statement retrieves specific columns (projection) and rows (selection) from a table without modifying the underlying data.",
-  "docSource": "https://www.postgresql.org/docs/current/tutorial-select.html",
-  "docTitle": "2.5. Querying a Table",
-  "difficulty": "beginner",
-  "objectives": ["Understand the difference between projection and selection in relational queries","Write basic SELECT queries using column lists, WHERE clauses, and expressions","Explain how PostgreSQL processes a query on the server before returning a result set"],
-  "quiz": [
-  { "question": "In the filing cabinet analogy, what does copying only specific fields (like names and phone numbers) onto a clean sheet of paper represent?",
-    "options": ["Selection (filtering rows)","Projection (filtering columns)","Indexing (sorting files)","Data mutation (updating records)"],
-    "answerIndex": 1,
-    "explanation": "Copying only specific fields/columns while ignoring others is known as projection. Selection, on the other hand, refers to filtering which rows (or files) are retrieved." },
-  { "question": "Which component of the PostgreSQL server process is responsible for determining the most efficient way to execute a SELECT statement?",
-    "options": ["The client terminal","The shared buffer pool","The query planner","The write-ahead log writer"],
-    "answerIndex": 2,
-    "explanation": "The query planner analyzes the SELECT statement and determines the most efficient access path (e.g., sequential scan or index scan) to retrieve the requested data." },
-  { "question": "In the hands-on walkthrough, how did we calculate the average temperature and display it under a custom column name?",
-    "options": ["By using the AVG() aggregate function on the entire table","By adding the high and low temperatures and dividing by two, using the AS keyword to rename the column","By creating a temporary view in the database","By modifying the underlying table schema to include a calculated column"],
-    "answerIndex": 1,
-    "explanation": "We used the expression `(temp_hi+temp_lo)/2` and renamed the output column using `AS temp_avg` to calculate and label the average temperature per row." },
-  { "question": "According to the 'What this is NOT' section, where does the filtering of rows via a WHERE clause occur?",
-    "options": ["On the client application side, after receiving all table rows","Inside the user's web browser","On the PostgreSQL server, before sending the data over the network","Directly on the physical hard drive controller"],
-    "answerIndex": 2,
-    "explanation": "PostgreSQL filters rows on the server side using the WHERE clause. This ensures only the matching rows are sent over the network, saving bandwidth and memory." },
-  { "question": "Why does understanding the execution pipeline (Filter -> Project) matter for database performance?",
-    "options": ["It explains why SELECT statements permanently change the table structure on disk.","It helps you realize that filtering rows early (selection) reduces the volume of data that must be processed and sent to the client.","It proves that SELECT * is always faster than specifying individual columns.","It shows that projection must always happen before selection in the server's physical execution."],
-    "answerIndex": 1,
-    "explanation": "By understanding that the server filters rows (selection) and then restricts columns (projection), you can write queries that minimize disk I/O and network overhead." },
-  { "question": "What is the exact title of the official PostgreSQL documentation section linked at the end of this lesson?",
-    "options": ["2.5. Querying a Table","2.5. Retrieving Data","Chapter 2. The SQL Language: SELECT","Selecting Rows and Columns"],
-    "answerIndex": 0,
-    "explanation": "The official documentation section is titled '2.5. Querying a Table'." }
-  ]
+  'order': 6,
+  'title': 'Reading Rows Back with SELECT',
+  'coreConcept':
+    'The SELECT statement retrieves specific columns (projection) and rows (selection) from a table
+    without modifying the underlying data.',
+  'docSource': 'https://www.postgresql.org/docs/current/tutorial-select.html',
+  'docTitle': '2.5. Querying a Table',
+  'difficulty': 'beginner',
+  'objectives':
+    [
+      'Understand the difference between projection and selection in relational queries',
+      'Write basic SELECT queries using column lists, WHERE clauses, and expressions',
+      'Explain how PostgreSQL processes a query on the server before returning a result set',
+    ],
+  'quiz':
+    [
+      {
+        'question':
+          'In the filing cabinet analogy, what does copying only specific fields (like names and
+          phone numbers) onto a clean sheet of paper represent?',
+        'options':
+          [
+            'Selection (filtering rows)',
+            'Projection (filtering columns)',
+            'Indexing (sorting files)',
+            'Data mutation (updating records)',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'Copying only specific fields/columns while ignoring others is known as projection.
+          Selection, on the other hand, refers to filtering which rows (or files) are retrieved.',
+      },
+      {
+        'question':
+          'Which component of the PostgreSQL server process is responsible for determining the most
+          efficient way to execute a SELECT statement?',
+        'options':
+          [
+            'The client terminal',
+            'The shared buffer pool',
+            'The query planner',
+            'The write-ahead log writer',
+          ],
+        'answerIndex': 2,
+        'explanation':
+          'The query planner analyzes the SELECT statement and determines the most efficient access
+          path (e.g., sequential scan or index scan) to retrieve the requested data.',
+      },
+      {
+        'question':
+          'In the hands-on walkthrough, how did we calculate the average temperature and display it
+          under a custom column name?',
+        'options':
+          [
+            'By using the AVG() aggregate function on the entire table',
+            'By adding the high and low temperatures and dividing by two, using the AS keyword to
+            rename the column',
+            'By creating a temporary view in the database',
+            'By modifying the underlying table schema to include a calculated column',
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'We used the expression `(temp_hi+temp_lo)/2` and renamed the output column using `AS
+          temp_avg` to calculate and label the average temperature per row.',
+      },
+      {
+        'question':
+          "According to the 'What this is NOT' section, where does the filtering of rows via a WHERE
+          clause occur?",
+        'options':
+          [
+            'On the client application side, after receiving all table rows',
+            "Inside the user's web browser",
+            'On the PostgreSQL server, before sending the data over the network',
+            'Directly on the physical hard drive controller',
+          ],
+        'answerIndex': 2,
+        'explanation':
+          'PostgreSQL filters rows on the server side using the WHERE clause. This ensures only the
+          matching rows are sent over the network, saving bandwidth and memory.',
+      },
+      {
+        'question':
+          'Why does understanding the execution pipeline (Filter -> Project) matter for database
+          performance?',
+        'options':
+          [
+            'It explains why SELECT statements permanently change the table structure on disk.',
+            'It helps you realize that filtering rows early (selection) reduces the volume of data
+            that must be processed and sent to the client.',
+            'It proves that SELECT * is always faster than specifying individual columns.',
+            "It shows that projection must always happen before selection in the server's physical
+            execution.",
+          ],
+        'answerIndex': 1,
+        'explanation':
+          'By understanding that the server filters rows (selection) and then restricts columns
+          (projection), you can write queries that minimize disk I/O and network overhead.',
+      },
+      {
+        'question':
+          'What is the exact title of the official PostgreSQL documentation section linked at the
+          end of this lesson?',
+        'options':
+          [
+            '2.5. Querying a Table',
+            '2.5. Retrieving Data',
+            'Chapter 2. The SQL Language: SELECT',
+            'Selecting Rows and Columns',
+          ],
+        'answerIndex': 0,
+        'explanation': "The official documentation section is titled '2.5. Querying a Table'.",
+      },
+    ],
 }
 ---
 
-Imagine a massive, meticulously organized filing cabinet in a busy office. You do not dump the entire cabinet onto your desk when you need to answer a simple question. Instead, you hand a specific request slip to the office clerk. You might ask for "only the names and phone numbers of clients who live in Boston." The clerk goes to the cabinet, filters out the clients from other cities, pulls out only the matching folders, and then copies down just the name and phone number columns onto a clean sheet of paper to hand back to you. In PostgreSQL, the `SELECT` statement is that precise request slip, ensuring you only receive the exact information you asked for without disturbing the physical files.
+Imagine a massive, meticulously organized filing cabinet in a busy office. You do not dump the
+entire cabinet onto your desk when you need to answer a simple question. Instead, you hand a
+specific request slip to the office clerk. You might ask for "only the names and phone numbers of
+clients who live in Boston." The clerk goes to the cabinet, filters out the clients from other
+cities, pulls out only the matching folders, and then copies down just the name and phone number
+columns onto a clean sheet of paper to hand back to you. In PostgreSQL, the `SELECT` statement is
+that precise request slip, ensuring you only receive the exact information you asked for without
+disturbing the physical files.
 
 ## The precise version
 
-In PostgreSQL, retrieving data is performed using the `SELECT` statement. When you execute a query, the client application sends the SQL text to a PostgreSQL server backend process. This process parses the query, and the **query planner** determines the most efficient way to access the physical data stored on disk or cached in **shared buffers**.
+In PostgreSQL, retrieving data is performed using the `SELECT` statement. When you execute a query,
+the client application sends the SQL text to a PostgreSQL server backend process. This process
+parses the query, and the **query planner** determines the most efficient way to access the physical
+data stored on disk or cached in **shared buffers**.
 
-To understand how data is retrieved, we must distinguish between two fundamental relational algebra operations:
-1. **Selection (Filtering Rows):** Restricting the rows returned by the query based on a conditional expression. In SQL, this is handled by the `WHERE` clause.
-2. **Projection (Filtering Columns):** Restricting the columns returned by the query. In SQL, this is handled by specifying a comma-separated target list of columns immediately after the `SELECT` keyword.
+To understand how data is retrieved, we must distinguish between two fundamental relational algebra
+operations:
+
+1. **Selection (Filtering Rows):** Restricting the rows returned by the query based on a conditional
+   expression. In SQL, this is handled by the `WHERE` clause.
+2. **Projection (Filtering Columns):** Restricting the columns returned by the query. In SQL, this
+   is handled by specifying a comma-separated target list of columns immediately after the `SELECT`
+   keyword.
 
 The basic syntax of a query is:
+
 ```sql
 SELECT target_list FROM table_expression WHERE condition;
 ```
-During execution, the server process reads the table's underlying pages, filters out rows that do not satisfy the `WHERE` condition, discards any columns not requested in the `target_list`, and transmits the resulting **result set** back to the client over the network protocol.
+
+During execution, the server process reads the table's underlying pages, filters out rows that do
+not satisfy the `WHERE` condition, discards any columns not requested in the `target_list`, and
+transmits the resulting **result set** back to the client over the network protocol.
 
 {/* DIAGRAM: Show a table of data passing through a vertical filter (WHERE clause) to remove rows, and then a horizontal filter (SELECT list) to isolate columns, resulting in a smaller output grid. */}
 
 ## A hands-on walkthrough
 
-Let's create a simple table representing weather observations, populate it with a few rows, and run queries to see projection and selection in action.
+Let's create a simple table representing weather observations, populate it with a few rows, and run
+queries to see projection and selection in action.
 
 First, we establish our table structure and insert some sample data:
 
@@ -75,6 +176,7 @@ INSERT INTO weather VALUES ('Hayward', 37, 54, 0.0, '1994-11-29');
 ```
 
 ### 1. Retrieve all columns and all rows
+
 To see everything in the table, we use the asterisk (`*`) shorthand, which represents all columns:
 
 ```sql
@@ -82,8 +184,9 @@ SELECT * FROM weather;
 ```
 
 **Expected Output:**
+
 ```text
-     city      | temp_lo | temp_hi | prcp |    date    
+     city      | temp_lo | temp_hi | prcp |    date
 ---------------+---------+---------+------+------------
  San Francisco |      46 |      50 | 0.25 | 1994-11-27
  San Francisco |      43 |      57 |    0 | 1994-11-29
@@ -92,15 +195,18 @@ SELECT * FROM weather;
 ```
 
 ### 2. Projection (Selecting specific columns)
-To retrieve only the city names and their high temperatures, we list the columns explicitly. This is highly recommended in production to save network bandwidth:
+
+To retrieve only the city names and their high temperatures, we list the columns explicitly. This is
+highly recommended in production to save network bandwidth:
 
 ```sql
 SELECT city, temp_hi FROM weather;
 ```
 
 **Expected Output:**
+
 ```text
-     city      | temp_hi 
+     city      | temp_hi
 ---------------+---------
  San Francisco |      50
  San Francisco |      57
@@ -109,32 +215,38 @@ SELECT city, temp_hi FROM weather;
 ```
 
 ### 3. Selection (Filtering rows with WHERE)
-To find only the records where it actually rained (precipitation greater than 0), we add a `WHERE` clause:
+
+To find only the records where it actually rained (precipitation greater than 0), we add a `WHERE`
+clause:
 
 ```sql
 SELECT * FROM weather WHERE prcp > 0.0;
 ```
 
 **Expected Output:**
+
 ```text
-     city      | temp_lo | temp_hi | prcp |    date    
+     city      | temp_lo | temp_hi | prcp |    date
 ---------------+---------+---------+------+------------
  San Francisco |      46 |      50 | 0.25 | 1994-11-27
 (1 row)
 ```
 
 ### 4. Combining Projection, Selection, and Expressions
-You can also perform calculations on columns on-the-fly and rename the output columns using the `AS` keyword:
+
+You can also perform calculations on columns on-the-fly and rename the output columns using the `AS`
+keyword:
 
 ```sql
-SELECT city, (temp_hi + temp_lo) / 2 AS temp_avg 
-FROM weather 
+SELECT city, (temp_hi + temp_lo) / 2 AS temp_avg
+FROM weather
 WHERE city = 'San Francisco';
 ```
 
 **Expected Output:**
+
 ```text
-     city      | temp_avg 
+     city      | temp_avg
 ---------------+----------
  San Francisco |       48
  San Francisco |       50
@@ -143,26 +255,33 @@ WHERE city = 'San Francisco';
 
 ## What this is NOT
 
-It is easy to confuse the behavior of `SELECT` with other operations. Let's clarify what `SELECT` is not:
+It is easy to confuse the behavior of `SELECT` with other operations. Let's clarify what `SELECT` is
+not:
 
-| Concept | SELECT | What it is NOT | Why the difference matters |
-| :--- | :--- | :--- | :--- |
-| **Data Mutation** | Read-only operation. It never alters the data stored on disk. | `UPDATE` or `DELETE` | You can run `SELECT` safely without fear of corrupting or losing production data. |
-| **Client-side Filtering** | The server filters rows *before* sending them over the network. | Fetching everything and filtering in code (e.g., JavaScript/Python). | Server-side filtering utilizes indexes and prevents network bottlenecks. |
-| **Schema Modification** | Modifies the presentation of the output (e.g., renaming with `AS`). | `ALTER TABLE` | Renaming a column in a `SELECT` statement only affects the current result set, not the table schema. |
+| Concept                   | SELECT                                                              | What it is NOT                                                       | Why the difference matters                                                                           |
+| :------------------------ | :------------------------------------------------------------------ | :------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- |
+| **Data Mutation**         | Read-only operation. It never alters the data stored on disk.       | `UPDATE` or `DELETE`                                                 | You can run `SELECT` safely without fear of corrupting or losing production data.                    |
+| **Client-side Filtering** | The server filters rows _before_ sending them over the network.     | Fetching everything and filtering in code (e.g., JavaScript/Python). | Server-side filtering utilizes indexes and prevents network bottlenecks.                             |
+| **Schema Modification**   | Modifies the presentation of the output (e.g., renaming with `AS`). | `ALTER TABLE`                                                        | Renaming a column in a `SELECT` statement only affects the current result set, not the table schema. |
 
 ## The diagram matters
 
-Understanding the flow of a `SELECT` statement is the foundation of database performance tuning. When you write a query, PostgreSQL does not execute it in the exact order it is written. 
+Understanding the flow of a `SELECT` statement is the foundation of database performance tuning.
+When you write a query, PostgreSQL does not execute it in the exact order it is written.
 
-For example, in a query containing `SELECT city FROM weather WHERE prcp > 0;`, the server must first locate the table (`FROM`), filter the rows (`WHERE`), and only then discard the unwanted columns to return the final list (`SELECT`). 
+For example, in a query containing `SELECT city FROM weather WHERE prcp > 0;`, the server must first
+locate the table (`FROM`), filter the rows (`WHERE`), and only then discard the unwanted columns to
+return the final list (`SELECT`).
 
 {/* DIAGRAM: A flowchart showing: 1. Parse Query -> 2. Plan Scan (FROM) -> 3. Evaluate Filter (WHERE) -> 4. Project Columns (SELECT list) -> 5. Return Result Set. */}
 
-By mastering this pipeline, you unlock the ability to read execution plans (`EXPLAIN`), design efficient indexes that speed up the `WHERE` clause, and avoid the performance pitfalls of retrieving unnecessary columns. 
+By mastering this pipeline, you unlock the ability to read execution plans (`EXPLAIN`), design
+efficient indexes that speed up the `WHERE` clause, and avoid the performance pitfalls of retrieving
+unnecessary columns.
 
 ## Read the official docs
 
-To dive deeper into querying tables, including advanced expressions and ordering results, read the official documentation:
+To dive deeper into querying tables, including advanced expressions and ordering results, read the
+official documentation:
 
 [2.5. Querying a Table](https://www.postgresql.org/docs/current/tutorial-select.html)

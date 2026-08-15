@@ -1,0 +1,241 @@
+---
+order: 13
+title: 'Dynamic Programming II: tables in two dimensions'
+coreConcept:
+  'When a state needs two independent dimensions — two strings, a grid, two knapsacks — the DP table
+  turns into a grid itself. Each cell still answers a smaller version of the question, but now the
+  "smaller" goes both up and left, and the final answer sits in the far corner.'
+docSource: 'https://www.geeksforgeeks.org/longest-common-subsequence-dp-4/'
+docTitle: 'Longest Common Subsequence — GeeksforGeeks'
+difficulty: 'advanced'
+objectives:
+  - 'Read dp[i][j] as a subproblem state shaped by two prefixes, and draw its up/left dependencies'
+  - 'Fill the Unique Paths grid from a row-and-column base, then read the corner as the answer'
+  - 'Write the LCS recurrence for matching and mismatching characters, and trace abcde vs ace'
+quiz:
+  - question: 'When does a DP state need two dimensions?'
+    options:
+      - 'When the problem is hard and the author wants it to look impressive'
+      - 'When the answer depends on two independent growing quantities — two string prefixes, a grid
+        position, two constraints — so no single number can name the subproblem'
+      - 'When arrays have two elements'
+      - 'Whenever recursion is involved'
+    answerIndex: 1
+    explanation:
+      'The dimension count is not a decoration; it is the number of independent things that define
+      "how much is left to solve." Two strings mean two prefixes, hence dp[i][j]. A grid means row
+      and column. A single number could not distinguish "first 3 chars of A" from "first 3 chars of
+      B".'
+  - question: 'In Unique Paths, why is every cell in row 0 and column 0 a 1?'
+    options:
+      - 'Because those cells only ever see a start'
+      - 'Because from the start you can travel the whole top row by moving only right, and the whole
+        left column by moving only down — exactly one route each'
+      - 'Because the robot is initialized at (1,1)'
+      - 'Because edges are worth zero'
+    answerIndex: 1
+    explanation:
+      'The base cells are the paths that require no choice: go straight right along the top or
+      straight down along the column. Every interior cell inherits from those anchors, which is why
+      the base rows must be present before any interior cell is computed.'
+  - question: 'What does dp[i][j] = dp[i-1][j] + dp[i][j-1] actually count?'
+    options:
+      - 'The sum of the cell above and the cell to the left — the last step of every valid route
+        arrived either from above or from the left'
+      - 'A product of the two neighbors'
+      - 'The larger of the two neighbors'
+      - 'The number of obstacles at (i, j)'
+    answerIndex: 0
+    explanation:
+      'Every route into (i, j) reached it one step late from exactly one of two places. Routes from
+      the top and routes from the left are disjoint sets of routes, so the total is their sum. Using
+      max or product would model a different problem entirely.'
+  - question: 'In LCS, when text1[i] and text2[j] match, why is it dp[i][j] = dp[i-1][j-1] + 1?'
+    options:
+      - 'Because adding the pair to the best subsequence of both prefixes can never hurt'
+      - 'Because the match completes one more element of a common subsequence: the best answer uses
+        this matched pair plus the best answer from both prefixes, one shorter'
+      - 'Because characters are summed numerically'
+      - 'Because the other two neighbors are always zero'
+    answerIndex: 1
+    explanation:
+      'A match is a gift: the longest common subsequence of the full prefixes is the longest of one
+      character shorter on both sides, plus this one shared character. Skipping either side would
+      throw the matched character away, and that can never beat using it.'
+  - question: 'In LCS, when text1[i] and text2[j] differ, why the max of two options?'
+    options:
+      - 'Because one mismatch always destroys both options'
+      - 'Because the best subsequence either ignores the current char of text1 (dp[i-1][j]) or
+        ignores the current char of text2 (dp[i][j-1]) — no way to use both, so keep the better'
+      - 'Because mismatches must be counted'
+      - 'Because the diagonal is subtracted'
+    answerIndex: 1
+    explanation:
+      'A mismatch means this pair cannot both join the subsequence, so the answer must come from a
+      strictly smaller problem: drop one end character, take the best of the two remaining
+      subproblems. Taking the max explores both discards without committing — the DP version of "try
+      both and keep the winner".'
+  - question: 'Why does LCS reuse so heavily that a table is worth it?'
+    options:
+      - 'It does not reuse anything — the table is for decoration'
+      - 'Subproblems overlap massively: dp[i][j] appears inside dp[i][j+1], dp[i+1][j], and half the
+        rest of the grid, so naive recursion recomputes the same prefix pair exponentially often'
+      - 'Because strings are short'
+      - 'Because the table is sorted'
+    answerIndex: 1
+    explanation:
+      'The character pair (prefix of A, prefix of B) is reachable through many paths of "drop a
+      char" decisions. A memo or table computes each of the m*n cells once, collapsing what would
+      otherwise explode. That overlap of subproblems is the very definition of dynamic programming.'
+  - question: 'Two answers for 3×7 = 28 and 7×3 = 28 agree. Why?'
+    options:
+      - 'Because the route count is symmetric in the grid dimensions — moving down 2 and right 6 is
+        the mirror image of moving down 6 and right 2, and both are C(8, 2) arrangements'
+      - 'Because the recurrence only stores odd numbers'
+      - 'Because m and n are interchangeable in the base cases'
+      - 'Because the robot walks in reverse sometimes'
+    answerIndex: 0
+    explanation:
+      'A route is just a sequence of down-steps and right-steps; counting them is choosing where the
+      down-steps sit in a fixed total. Swapping m and n swaps the word for "down" and "right", so
+      the count is unchanged — the table reflects that symmetry automatically.'
+problems:
+  - title: 'Unique Paths'
+    leetcodeId: 62
+    difficulty: 'medium'
+    prompt: |
+      A robot sits at the top-left corner of an m x n grid and can only move right or down. It wants
+      the bottom-right corner. Given the integers m and n, return the number of distinct paths.
+      Examples: m=3, n=7 → 28; m=3, n=2 → 3.
+    starterCode: |
+      function solution(m, n) {
+        // Plan: dp[i][j] = routes from the start to cell (i, j). Row 0 and
+        // column 0 are all 1 (one straight route each). Every interior cell
+        // sums the cell above and the cell to the left. Answer dp[m-1][n-1].
+        return 0;
+      }
+    testCases:
+      - input: [3, 7]
+        expected: 28
+      - input: [3, 2]
+        expected: 3
+      - input: [1, 1]
+        expected: 1
+      - input: [2, 3]
+        expected: 3
+      - input: [1, 2]
+        expected: 1
+      - input: [7, 3]
+        expected: 28
+  - title: 'Longest Common Subsequence'
+    leetcodeId: 1143
+    difficulty: 'medium'
+    prompt: |
+      Given two strings text1 and text2, return the length of their longest common subsequence. A
+      subsequence keeps characters from a string in their original relative order (not necessarily
+      contiguous). If no characters match, return 0.
+      Examples: "abcde" & "ace" → 3 ("ace"); "abc" & "def" → 0.
+    starterCode: |
+      function solution(text1, text2) {
+        // Plan: dp[i][j] = length of the LCS of text1.slice(0,i) and
+        // text2.slice(0,j). Row and column 0 are zeros. If the last chars
+        // match, dp[i][j] = dp[i-1][j-1] + 1; else dp[i][j] = max of
+        // dp[i-1][j] (drop a char from text1) and dp[i][j-1]. Answer corner.
+        return 0;
+      }
+    testCases:
+      - input: ['abcde', 'ace']
+        expected: 3
+      - input: ['abc', 'abc']
+        expected: 3
+      - input: ['abc', 'def']
+        expected: 0
+      - input: ['bl', 'yby']
+        expected: 1
+      - input: ['ezupkr', 'ubmrapg']
+        expected: 2
+      - input: ['psnw', 'vozsh']
+        expected: 1
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './13-dp-2d.frames';
+
+<DsaVisualizer title="A grid that counts its own paths" frames={frames} client:idle />
+
+## The one question this page answers
+
+Yesterday the state needed one dimension, so the table was a line. What happens when the answer
+depends on _two_ growing things — a position on a grid, or two strings being compared? The one line
+becomes a table with two axes, but the philosophy is unchanged: every cell answers a smaller version
+of the question, and its answer is built from neighbors that are already settled. This page shows
+two canonical 2D states: the grid itself, and a pair of prefixes.
+
+## Start with an analogy
+
+Picture an ant in the corner of a tiled floor. Each step is either south or east, and you want to
+count every route to the far corner. There is no way to count routes by looking at the corner alone
+— the answer lives in the whole floor: every tile holds "how many ways to get to _me_", each tile
+adding the ways of the tile above and the tile to its left.
+
+Now hold two strings, "abcde" and "ace", as two bead necklaces. Ask: how long a chain of beads can I
+pull, matching bead colors in the same order in both necklaces? The state again needs two numbers:
+how deep into necklace A I have committed, and how deep into necklace B. Two prefixes, two axes —
+and the answer again collects in the far corner of a table.
+
+## The 2D state, and its compass
+
+In both problems the cell `dp[i][j]` means "the answer to the subproblem defined by prefix `i` on
+the first dimension and prefix `j` on the second." Every transition reads cells that are smaller in
+**at least one** dimension — above (`i-1, j`), left (`i, j-1`), or the diagonal (`i-1, j-1`) — never
+a larger one. That dependency compass is what makes the fill order (row by row, left to right)
+automatic and correct.
+
+## Unique Paths: the grid that counts itself
+
+For Unique Paths, `dp[i][j]` = number of routes from the corner to cell `(i, j)`.
+
+- **Base** — row 0 and column 0 are all 1: from the corner, one route reaches each by going
+  straight.
+- **Transition** — `dp[i][j] = dp[i-1][j] + dp[i][j-1]`: every route's last step came from above or
+  from the left.
+- **Answer** — `dp[m-1][n-1]`.
+
+The visualizer fills a 3×3 grid — watch the base row and column light up, then the interior fan out
+to `6`. Scale the same recurrence to 3×7 and you get **28**: the recurrence never changes, only the
+table size.
+
+## LCS: matching or dropping
+
+For Longest Common Subsequence, `dp[i][j]` = length of the LCS of `text1[0..i)` and `text2[0..j)`.
+
+- **Base** — row 0 and column 0 are zeros: an empty prefix shares nothing with anything.
+- **Transition** — compare the final characters of the two prefixes:
+  - **Match** (`text1[i-1] === text2[j-1]`): `dp[i][j] = dp[i-1][j-1] + 1` — the matched pair rides
+    on the best answer one shorter on both sides.
+  - **Mismatch**: `dp[i][j] = max(dp[i-1][j], dp[i][j-1])` — the answer comes from dropping either
+    end character.
+- **Answer** — `dp[text1.length][text2.length]`.
+
+Trace `"abcde"` vs `"ace"` by hand: the diagonal matches across `a`, `c`, `e` carry a small
+`1, 2, 3` on the diagonal, and every mismatch copies the larger neighbor. The corner reads `3`. Cost
+is **O(m · n)** time and space; with `m` and `n` the two lengths.
+
+## What this is NOT
+
+| Misconception                                    | Truth                                                                                                                                        |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| "A 2D table is a different algorithm from 1D DP" | Same three ingredients, one more axis. The recurrence reads up/left/diagonal instead of one neighbor; the discipline is identical.           |
+| "The grid IS the input grid"                     | The DP grid stores _answers_, not the picture. Unique Paths and Flood Fill both deal with grids, but only DP keeps counts in its cells.      |
+| "LCS matches greedily at the first equal char"   | A local match may wreck a better future chain. The recurrence evaluates match-or-drop for every pair, never committing blindly.              |
+| "The corner is always the maximum cell"          | It is the answer only because the state was defined to make it so — with smaller states _inside_ the table, the corner is the whole problem. |
+
+## Why this matters for the rest of the trip
+
+Two-dimensional states are the parent of a whole family: edit distance, longest palindromic
+subsequence, the knapsack with capacity as a second axis, and grid-based graph problems you will
+meet when graphs arrive. The mental move — "what two things are growing, and how does one cell
+depend on its smaller neighbors?" — generalizes farther than any single recurrence on this page.
+
+Solve the two problems above. For each, draw the table's dependency compass (up, left, diagonal)
+before you fill anything in — the drawing _is_ the solution, the loops are just bookkeeping.

@@ -1,0 +1,228 @@
+---
+order: 17
+title: 'Union-Find: tracking who belongs to whom'
+coreConcept:
+  'Union-Find (disjoint-set) keeps a partition of nodes — each node “parent” points toward the root
+  of its group — so that find(x) walks up to the root, union(x, y) joins two roots, and path
+  compression plus union by size keep every operation near-constant: α(n). It answers "same group?"
+  in near-O(1) and counts connected components.'
+docSource: 'https://en.wikipedia.org/wiki/Disjoint-set_data_structure'
+docTitle: 'Disjoint-set data structure — Wikipedia'
+difficulty: 'intermediate'
+objectives:
+  - 'Explain find(x) as walking parent links to the root of a component'
+  - 'Implement union(x, y) by connecting the two roots, never the nodes themselves'
+  - 'Apply path compression and union by size, and say why each keeps trees shallow'
+  - 'Use the counter of roots to count connected components (Number of Provinces)'
+  - 'Spot the cycle when unioning an edge whose endpoints already share a root'
+quiz:
+  - question: 'What does find(x) return, exactly?'
+    options:
+      - 'The parent of x'
+      - 'The root of the component that contains x — it walks parent pointers until a pointer points
+        at itself'
+      - 'The smallest node in x’s component'
+      - 'The number of unions performed so far'
+    answerIndex: 1
+    explanation:
+      'parent[x] is the answer only at the top; in general the root is reachable by walking
+      parent[x], parent[parent[x]], … until hitting a node whose parent is itself. That is the
+      contract find honors. The smallest node carries no meaning (roots are whatever was chosen
+      during unions), and union counts are bookkeeping, not an identity.'
+  - question: 'Why is union(x, y) performed between the two ROOTS, not between x and y directly?'
+    options:
+      - 'Because roots store more data than ordinary nodes'
+      - 'If the two nodes share a root, they are already unified and union is a no-op; otherwise
+        attaching one root under the other merges every member of both components at once'
+      - 'Because nodes cannot be modified after creation'
+      - 'Because roots are always adjacent'
+    answerIndex: 1
+    explanation:
+      'An edge between two members is really an edge between two components. Connecting the roots is
+      what collapses the two groups into one, and comparing the roots first is precisely how union
+      detects that x and y already belong together — the signal for both the connected-components
+      count and cycle detection. Attaching members directly would leave two roots fighting over one
+      group.'
+  - question: 'Path compression rewrites parent pointers during find. Which cells get rewritten?'
+    options:
+      - 'Only the root'
+      - 'Every node walked on the way from x up to the root — each gets repointed straight at the
+        root, flattening the tree'
+      - 'Only x itself'
+      - 'Every node in the entire graph'
+    answerIndex: 1
+    explanation:
+      'While walking up, find sees each ancestor between x and the root, and in the end it knows
+      they all share one answer — the root. Pointing each of them at that root makes the next find
+      for any of them a one-hop look-up. Repointing only x would flatten just one path; touching the
+      whole graph is wasteful; and a root already points at itself.'
+  - question: 'Why does union by size (or rank) keep find() fast even without compression?'
+    options:
+      - 'It sorts the parent array'
+      - 'Attaching the smaller tree under the larger one caps how tall trees can grow — node depth
+        grows only logarithmically in the number of unions — so the walk up to a root stays short'
+      - 'It stores nodes in a hash table'
+      - 'It prevents unions from happening at all'
+    answerIndex: 1
+    explanation:
+      'Every union doubles (at most) the size of the smaller tree only when it is attached under the
+      larger one, so a node can be "doubled under" only O(log n) times — its depth is bounded by log
+      n, and walks are cheap. Randomly attaching either side can build deep chains. Compression
+      alone already works well; size gives an independent guarantee on top.'
+  - question: 'In Number of Provinces, union-find counts provinces as…'
+    options:
+      - 'the number of nodes with at least one parent different from themselves'
+      - 'the number of roots — every union that joins two different roots drops the component count
+        by one, for connected cities of the isConnected matrix'
+      - 'the number of edges divided by two'
+      - 'the value of the largest connected city'
+    answerIndex: 1
+    explanation:
+      'Start with every city as its own province (count = n). For each pair (i, j) with
+      isConnected[i][j] = 1, union(i, j); only a successful union — two different roots merged —
+      decrements the count. What is left is the number of distinct components. Roots are the
+      identity of a component, so counting them is counting provinces; edges divided by two and
+      largest-city values are unrelated noise.'
+  - question: 'While building a graph edge by edge, when does union(x, y) reveal a cycle?'
+    options:
+      - 'When x or y is an isolated node'
+      - 'When find(x) already equals find(y) — both endpoints live in the same component, so the
+        edge connects nodes already connected, closing a cycle'
+      - 'When union returns a number greater than 1'
+      - 'When the edge is undirected instead of directed'
+    answerIndex: 1
+    explanation:
+      'Union-Find sees connectivity purely; an edge whose endpoints share a root adds no new
+      connection — it loops two nodes of the same component, a cycle. This exact test powers
+      Kruskal’s minimum spanning tree and cycle-detection problems. Isolated nodes have a root too,
+      so union is still well-defined, and the undirected/directed distinction is irrelevant to the
+      test.'
+  - question: 'Union-Find is fast because each find is amortized…'
+    options:
+      - 'O(n) in the worst case but O(log n) on average'
+      - 'nearly O(1) — a very slowly growing function, α(n), when both compression and union by size
+        are used'
+      - 'O(n²) because of the parent array'
+      - 'O(1) always, with no caveats, even without any optimizations'
+    answerIndex: 1
+    explanation:
+      'Compression kills tall trees and union by size prevents them from growing, so a sequence of m
+      operations runs in almost-linear, nearly O(1)-per-operation time — practically
+      indistinguishable from constant even on astronomically large n. A bare parent array with
+      random unions can still build O(n)-deep chains, so "always O(1)" is a lie; the guarantees come
+      from the optimizations.'
+problems:
+  - title: 'Number of Provinces'
+    leetcodeId: 547
+    difficulty: 'medium'
+    prompt: |
+      There are n cities labeled 0 to n-1, given as an n×n matrix isConnected where
+      isConnected[i][j] = 1 if city i is directly connected to city j. A province is a group of
+      cities that are directly or indirectly connected. Return the total number of provinces.
+      Do it with union-find: start with n provinces, union every pair with a direct connection, and
+      drop the count on every successful union (two different roots joined).
+      The signature is solution(isConnected). Example: [[1,1,0],[1,1,0],[0,0,1]] → 2.
+    starterCode: |
+      function solution(isConnected) {
+        // Plan: parent[i] starts as i (each city its own root). For every
+        // pair (i, j) with isConnected[i][j] == 1, find both roots; if they
+        // differ, attach one root under the other and decrease the province
+        // count by one. Return the count.
+        return 0;
+      }
+    testCases:
+      - input:
+          - [[1, 1, 0], [1, 1, 0], [0, 0, 1]]
+        expected: 2
+      - input:
+          - [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        expected: 3
+      - input:
+          - [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+        expected: 1
+      - input: [[[1]]]
+        expected: 1
+      - input:
+          - [[1, 1, 0, 0], [1, 1, 0, 0], [0, 0, 1, 1], [0, 0, 1, 1]]
+        expected: 2
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './17-union-find.frames';
+
+<DsaVisualizer title="A parent array becoming one village" frames={frames} client:idle />
+
+## The one question this page answers
+
+Connectivity questions — _are these two things already linked? how many separate groups exist?_ —
+look begging for a traversal each time, which costs O(n) per question. The page's question: _can we
+answer "same group?" in near-constant time, after a cheap setup?_ Union-Find says yes, with the
+daring storage choice of giving every node exactly one parent pointer.
+
+## Start with an analogy
+
+A village fair. Each person holds a string; the string in your hand points at some other person. The
+delegation of the whole crowd is: whoever you are, pull strings until you reach the one person whose
+string loops back to themselves — the **root** of your group. Everyone sharing that root is one
+neighborhood.
+
+Two neighbors run into each other. To merge the neighborhoods they do not tie every pair of hands;
+the two **roots** agree first, and one root hands its string to the other. Everyone in the smaller
+group is now, with a pull of a few strings, part of the larger group.
+
+The string holder is a **parent**; pulling strings is **find**; roots shaking hands is **union**.
+
+## The parent array and find
+
+The data is shockingly small — one integer per node:
+
+- `parent[i]` = the parent of node `i`.
+- A node is a **root** when `parent[i] === i`.
+- `find(x)` walks `parent[x]`, `parent[parent[x]]`, … until it reaches a root.
+
+Two nodes are in the same component exactly when `find(x) === find(y)`. To **union(x, y)**: find
+both roots, and if they differ, point one root at the other — the two components become one.
+
+## Path compression
+
+During `find(x)`, the walk sees every ancestor on the way to the root — and at the end it owns the
+answer for all of them. So `find` rewrites its own path: every node walked is repointed straight at
+the root. Next time any of them is asked, it is one hop. This pays for itself so well that a bare
+`find` with compression, done on a sequence of operations, is already almost linear.
+
+## Union by size
+
+Which root attaches to which matters. If the bigger root always stays the root and the smaller tree
+is hung under it, every node's depth can only grow when its tree is the smaller one being absorbed —
+and that can happen only O(log n) times per node. Shallow trees, short walks. Union by size and path
+compression together give the famous near-constant **α(n)** — a function so slow it is
+indistinguishable from 1 for every practical n.
+
+## Counting components
+
+Number of Provinces starts with `count = n` (every city is its own province) and scans the
+`isConnected` matrix. Each `1` between cities `i` and `j` triggers `union(i, j)`; a _successful_
+union — two different roots merged — decrements the counter. What survives is the number of roots,
+which is the number of provinces, because every root names exactly one disconnected group.
+
+## What this is NOT
+
+| Misconception                              | Truth                                                                                                         |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| "Union-Find is a graph representation"     | It does not store edges at all — only a parent per node. It answers connectivity questions about a partition. |
+| "find(x) just returns parent[x]"           | It returns the ROOT, walking any number of parents to find it.                                                |
+| "union joins the two nodes directly"       | It joins the two components through their roots; same-root membership is a no-op that reveals a cycle.        |
+| "Trees can grow tall and slow like a list" | Path compression and union by size keep them shallow; the amortized cost is near-constant.                    |
+| "Union-Find replaced adjacency lists"      | They answer different questions — lists map who is adjacent; union-find maps who shares a group.              |
+
+## Why this matters for the rest of the trip
+
+Union-Find is the quiet workhorse behind connectivity — connected components, cycle detection in
+undirected graphs, and Kruskal's minimum-spanning-tree all lean on "same root?" being nearly free.
+Wherever a problem asks "are these already linked?" in a context that changes as edges arrive,
+traversing each time is the crude answer; union-find is the disciplined one. Pair it with the
+traversal instincts of the graph days and the overlap thinking of the interval days, and
+connectivity problems stop looking scary.
+
+Solve Number of Provinces above — then the connected-components instinct will show up again in the
+union-find flavoring of future graph problems.

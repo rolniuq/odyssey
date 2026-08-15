@@ -1,0 +1,240 @@
+---
+order: 1
+title: 'Arrays and Hash Maps'
+coreConcept:
+  'A hash map trades memory for time: by remembering every value you have already seen, questions
+  like "did an earlier element pair with this one?" become one poke instead of a re-scan.'
+docSource: 'https://www.geeksforgeeks.org/hashing-data-structure/'
+docTitle: 'Hashing Data Structure — GeeksforGeeks'
+difficulty: 'beginner'
+objectives:
+  - 'Hear the ringing bell: any problem that asks "was something like this seen before?" wants a
+    hash structure'
+  - 'Wield the complement trick: instead of hunting for a partner element, look up target minus the
+    current value'
+  - 'State the trade honestly: an O(n) side table buys a drop from O(n²) to O(n) time'
+quiz:
+  - question: 'What does a hash map make cheap that a plain array cannot?'
+    options:
+      - 'Remembering the exact position of every element, one by one'
+      - 'Answering "have I seen this value already, and where?" in expected O(1)'
+      - 'Sorting the collection in place'
+      - 'Guaranteeing O(1) time for every single operation, no exceptions'
+    answerIndex: 1
+    explanation:
+      'The map derives a storage slot from the value itself (its hash), so a second copy of "the
+      same element" lands on the same peg: you find the peg without scanning. The other options miss
+      the point: a map does not equal a position list, a map does not sort (that is a different
+      tool), and hashing is "expected" O(1), never worst-case — adversarial collisions can still
+      degrade a bucket.'
+  - question: 'Where does the complement trick shine in Two Sum?'
+    options:
+      - "It sorts nums so the array becomes two-pointer friendly — it doesn't, but the trick leans
+        on it anyway"
+      - 'It checks every future element against every past one before doing any work'
+      - 'It turns the search over to a hash map: for each value, check whether target − value
+        already sits in the table, without scanning the past again'
+      - 'It duplicates the array so every pair appears twice'
+    answerIndex: 2
+    explanation:
+      'Complement replaces a backwards scan with a lookup: every past value is already on its peg,
+      so "is the partner here?" is one poke. Sorting is irrelevant and would cost O(n log n);
+      re-checking all pairs is the O(n²) we are trying to escape; duplicating changes nothing about
+      how pairs are found.'
+  - question: "Why does 'expected' precede O(1) when we talk about hash maps?"
+    options:
+      - 'Because hash functions are random, so timing is a coin flip'
+      - 'Colliding keys share a bucket, so a bad hash can stretch one bucket into a long chain —
+        good hash functions and resizing keep real-world lookup near O(1)'
+      - 'Because arrays beat maps whenever the array is long'
+      - 'Because the map needs a full rebuild every insertion'
+    answerIndex: 1
+    explanation:
+      'Two different keys can hash to the same bucket (a collision); that bucket then holds a small
+      list. With a decent hash and dynamic resizing the chain stays tiny, so "one poke" is the truth
+      in practice — but it is a probabilistic guarantee, not an absolute one. It has nothing to do
+      with randomness of timing (collisions are deterministic), arrays being faster, or a rebuild
+      per insert.'
+  - question: 'For Contains Duplicate, why is a Set the right pick over a Map?'
+    options:
+      - 'A Map would silently be slower for membership'
+      - 'The problem asks only "is this value in here?" — a Set stores the bucket with no associated
+        value, which is exactly the question'
+      - 'Sets use O(n) memory while Maps use O(n²)'
+      - 'A Set auto-deduplicates on insert, so a duplicate can never be detected'
+    answerIndex: 1
+    explanation:
+      'Membership is the entire problem, so the thing a Map would store beside each key (a
+      frequency, an index) is dead weight; a Set carries the key and nothing else, at the same
+      expected O(1) lookups. A Map is not slower for membership, both use O(n) space, and a Set does
+      not mask duplicates — you still see the second insert arrive and can flag it.'
+  - question: 'Why does the naive "loop inside a loop" for Two Sum cost O(n²)?'
+    options:
+      - 'It re-sorts the array after every outer iteration'
+      - 'For each of the n elements it asks all n − 1 others whether they pair up, and most of those
+        questions re-ask slices of the same past over and over'
+      - 'Hash maps need quadratic space to store complements'
+      - 'The complement is never stored anywhere, so nothing is ever compared'
+    answerIndex: 1
+    explanation:
+      "With n elements, element k alone compares against everything after it, and the sum over k of
+      the tail length is about n²/2 comparisons. That is the whole cost — no sorting, no hash space
+      — and it is exactly what a one-pass map dodges: the map answers each element's partner
+      question once, in O(1), instead of the element asking everyone behind it."
+  - question:
+      'In the One-pass Two Sum, why can the answer pop out the moment the second element arrives?'
+    options:
+      - 'Because the array is guaranteed sorted, so the pair is the first two'
+      - 'Because the complement of any later value may already sit in the map — one poke settles
+        that element, and if it hits we stop immediately'
+      - 'Because we compare the current value against a reversed copy'
+      - 'Because we store index → value, letting the map read the element backward'
+    answerIndex: 1
+    explanation:
+      'By the time we reach an element, every earlier element has stored itself under its own value.
+      If its complement is among them, the peg exists and we are done; if not, we add the current
+      element and continue. Storing index → value would answer "which value is at index k?", the
+      wrong question; no sorting and no reversed copy are involved.'
+  - question: 'Which trade does hashing force you to be honest about?'
+    options:
+      - 'None — hashing is strictly better than every alternative'
+      - 'It spends O(n) extra memory so the time can drop from nested-loop O(n²) to one-pass O(n)'
+      - 'It spends correctness to buy speed'
+      - 'It spends determinism and becomes non-repeatable'
+    answerIndex: 1
+    explanation:
+      'The whole trick is memory-for-time: one side table sized by the input (O(n) space) that
+      removes the repeated rescanning (O(n) time). It is not "free", it is not lossless in every
+      axis, and it neither sacrifices correctness nor randomness — it is a deliberate, measurable
+      trade you should be able to name out loud.'
+problems:
+  - title: 'Two Sum'
+    leetcodeId: 1
+    difficulty: 'easy'
+    prompt: |
+      Given an integer array nums and an integer target, return the indices of the two numbers that
+      add up to target. Exactly one solution exists, and you may not use the same element twice.
+      Return the pair as [earlierIndex, currentIndex].
+      Examples: [2, 7, 11, 15], 9 → [0, 1]; [3, 2, 4], 6 → [1, 2].
+    starterCode: |
+      function solution(nums, target) {
+        // Plan: walk nums once. For each value, check whether (target - value)
+        // is already in the map. If yes, return [thatIndex, i]; if no, store
+        // value -> i so a future element can find this one as its complement.
+        return [0, 0];
+      }
+    testCases:
+      - input: [[2, 7, 11, 15], 9]
+        expected: [0, 1]
+      - input: [[3, 2, 4], 6]
+        expected: [1, 2]
+      - input: [[3, 3], 6]
+        expected: [0, 1]
+      - input: [[-1, -2, -3, -4], -4]
+        expected: [0, 2]
+      - input: [[0, 4, 3, 0], 0]
+        expected: [0, 3]
+  - title: 'Contains Duplicate'
+    leetcodeId: 217
+    difficulty: 'easy'
+    prompt: |
+      Given an integer array nums, return true if any value appears at least twice in the array, and
+      false if every element is distinct.
+      Examples: [1, 2, 3, 1] → true; [1, 2, 3, 4] → false.
+    starterCode: |
+      function solution(nums) {
+        // Plan: drop each value into a Set as you scan. The first value that
+        // already sits in the set proves a duplicate - return true. If the
+        // scan finishes, every element was unique.
+        return false;
+      }
+    testCases:
+      - input: [[1, 2, 3, 1]]
+        expected: true
+      - input: [[1, 2, 3, 4]]
+        expected: false
+      - input: [[1, 1, 1, 3, 3, 4, 3, 2, 4, 2]]
+        expected: true
+      - input: [[]]
+        expected: false
+      - input: [[1]]
+        expected: false
+      - input: [[-1, -1]]
+        expected: true
+---
+
+import DsaVisualizer from '../../components/DsaVisualizer';
+import { frames } from './01-arrays-and-hashing.frames';
+
+<DsaVisualizer title="The one-pass complement hunt" frames={frames} client:idle />
+
+## The one question this page answers
+
+You have already walked past a value, and later you need to know _whether that exact value was in
+the past — and where_. The naive answer is to re-scan everything you have seen every time you need
+to know, which for Two Sum means a nested loop: for each `i`, check every `j`. That is **O(n²)**.
+The hash map asks a sharper question: _can the past be organized so "did I see this already?" is one
+poke instead of a scan?_ The answer is yes — at the price of some extra memory.
+
+## Start with an analogy
+
+A coat-check counter in a crowded hall. When you hand over your coat you get a ticket, and when you
+come back you do not describe your coat to every attendant (`"dark blue, three buttons?"`) as you
+would if you were scanning a rack. You hand over the ticket and get the coat back in a step, because
+the ticket is a key tied to the coat's spot.
+
+The hash map is that ticket desk. Every value you have met gets a peg ("slot") of its own, computed
+from the value itself. Saying "have I seen a 7?" means walking to peg 7 — not walking the whole rack
+of past values.
+
+## The pegboard is a hash table
+
+A hash map stores `key → anything`. The key is the value you will later ask about; the peg it lands
+on is produced by a hash function, so the same key always lands on the same peg. In practice a peg
+is a _bucket_ that may hold a couple of keys (that is the "collision" that makes O(1) only
+_expected_), but with a decent hash the bucket stays tiny. Lookup, insert, and delete are each a
+poke: O(1) expected.
+
+### The complement trick
+
+Two Sum does not search for a pair; it searches for a _memory_. For each value `nums[i]`, the
+partner we need is `target - nums[i]`. Instead of scanning ahead for it, we check whether that
+complement is already on the pegboard:
+
+1. Not on the board? Hide this value on its peg (`value → index`) and keep walking.
+2. On the board? The plural is found: `[board.get(complement), i]`.
+
+The map only holds the **left side** of the journey — everything seen so far. That is enough,
+because whichever element is the pair's _second_ member will find the first one waiting on its peg.
+
+### Set versus Map
+
+The `Set` is the map stripped to the question "is this key here?" — it stores buckets with no
+slotted value. Contains Duplicate asks exactly that, so a `Set` is the minimal, honest tool: drop
+each number in; if it is already there, duplicates exist.
+
+## The honest cost ledger
+
+The nested loop is O(n²) time and O(1) space. The hashed one-pass is O(n) time and O(n) space — one
+peg per element. For array-sized inputs that trade is almost always a steal: an extra pass of memory
+turns quadratic time into linear time, and the problems this unlocks (counting frequency, marking
+seen, pairing complements) are constants of the algorithmic world.
+
+## What this is NOT
+
+| Misconception                             | Truth                                                                                                             |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| "Hashing is sorted access"                | A map gives membership and look-up; it does not order its keys. Sorting is a different tool with O(n log n) cost. |
+| "Expected O(1) is guaranteed O(1)"        | Colliding keys share a bucket, so adversarial input can stretch a chain; 'expected' is the honest word.           |
+| "A Set replaces an array"                 | Arrays keep order, allow index math, and cost nothing to store; a Set is membership-only.                         |
+| "The complement trick needs sorted input" | No — it works on any order, which is why it beats two pointers (Day 2) on unsorted arrays.                        |
+
+## Why this matters for the rest of the trip
+
+Hashing is the memory layer under almost everything ahead. The sliding window (Day 3) uses a set of
+seen characters to know when a window turned invalid; frequency counting shows up in anagrams and
+grouping problems; and when you meet problems like _Group Anagrams_ or _Top K Frequent Elements_,
+the reflex "what should each peg remember?" is how you pick the right side table.
+
+Solve the two problems above before moving on — then try _Valid Anagram_ and _Intersection of Two
+Arrays_ on LeetCode to make the peg reflex automatic.
