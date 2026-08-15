@@ -23,8 +23,9 @@ See [`RULES.md`](./RULES.md) for the full coding contract.
 ## Commits
 
 Follow **Conventional Commits** (enforced by the `.githooks/commit-msg` hook):
-`<type>(<scope>): <subject>`. Types: `feat | fix | docs | style | refactor | perf | test |
-build | ci | chore | revert`. Full rules + examples in [`COMMIT_CONVENTION.md`](./COMMIT_CONVENTION.md).
+`<type>(<scope>): <subject>`. Types:
+`feat | fix | docs | style | refactor | perf | test | build | ci | chore | revert`. Full rules +
+examples in [`COMMIT_CONVENTION.md`](./COMMIT_CONVENTION.md).
 
 ## Documentation
 
