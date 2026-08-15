@@ -1,0 +1,142 @@
+---
+{
+  "order": 9,
+  "title": "Joining tables: the ON clause",
+  "coreConcept": "The ON clause defines the logical condition that pairs rows from two distinct relations during a join operation.",
+  "docSource": "https://www.postgresql.org/docs/current/tutorial-join.html",
+  "docTitle": "2.6. Joins Between Tables",
+  "difficulty": "intermediate",
+  "objectives": ["Understand how the ON clause acts as a filter for Cartesian products.","Differentiate between ON join conditions and WHERE filter conditions.","Write explicit inner joins using PostgreSQL syntax."],
+  "quiz": [
+  { "question": "In the card deck analogy, what represents the ON clause?",
+    "options": ["The total number of cards in both decks combined.","The rule used to decide if an Employee card and a Department card match.","The physical table on which the cards are dealt.","The process of discarding cards that have no numbers."],
+    "answerIndex": 1,
+    "explanation": "The analogy describes the ON clause as the specific rule ('Do these two ID numbers match?') used to validate whether a pair of cards belongs together." },
+  { "question": "Logically, how does PostgreSQL evaluate the ON clause during an INNER JOIN?",
+    "options": ["It filters the left table first, then appends the right table's columns without checking values.","It evaluates a boolean expression for each candidate pair of rows from the Cartesian product of the relations.","It permanently alters the foreign key constraints of the physical tables on disk.","It performs a string comparison on the table names to find matching columns."],
+    "answerIndex": 1,
+    "explanation": "Logically, the ON clause is a boolean expression evaluated against the candidate pairs of the Cartesian product. If it evaluates to true, the pair is kept." },
+  { "question": "In the hands-on walkthrough, why was the employee 'David' excluded from the final query output?",
+    "options": ["His emp_id was greater than 103.","The departments table did not have a department named 'Sales'.","His dept_id was NULL, and NULL = dept_id does not evaluate to true.","The employees table was created after the departments table."],
+    "answerIndex": 2,
+    "explanation": "David's dept_id was NULL. In SQL's three-valued logic, comparing NULL to any value yields 'unknown' (not true), so the row failed the ON clause condition." },
+  { "question": "According to the 'What this is NOT' table, how does the ON clause differ from the WHERE clause?",
+    "options": ["ON defines the criteria for pairing rows across tables during assembly, whereas WHERE filters rows after the join is logically complete.","ON is a schema-level constraint, whereas WHERE is a temporary memory buffer.","ON can only compare integers, whereas WHERE can compare any data type.","ON is shorthand syntax that requires identical column names, whereas WHERE does not."],
+    "answerIndex": 0,
+    "explanation": "The table highlights that the ON clause defines pairing criteria during relation assembly, while WHERE acts as a general row filter applied after the join." },
+  { "question": "Why does the 'The diagram matters' section state that mastering the ON clause is critical for advanced queries?",
+    "options": ["Because it allows you to bypass the query planner entirely.","Because the placement of conditions in ON versus WHERE dramatically changes the behavior of outer joins.","Because it physically merges two tables on disk to save storage space.","Because it is the only way to index foreign keys in PostgreSQL."],
+    "answerIndex": 1,
+    "explanation": "The section explains that understanding the ON clause as a bridge is essential for outer joins, where putting a condition in the ON clause vs. the WHERE clause yields completely different results." },
+  { "question": "According to the official PostgreSQL documentation linked in the lesson, what is the title of section 2.6?",
+    "options": ["Joining Tables: The ON Clause","Joins Between Tables","Advanced Relational Queries","Querying Multiple Relations"],
+    "answerIndex": 1,
+    "explanation": "The official documentation title provided is '2.6. Joins Between Tables'." }
+  ]
+}
+---
+
+Imagine you have two separate decks of cards. One deck contains cards representing "Employees" (with their names and a department ID number). The second deck contains cards representing "Departments" (with department ID numbers and department names). If you want to match employees to their departments, you don't just stack the decks randomly. Instead, you hold an Employee card in your left hand, and you search the Department deck in your right hand for a card where the department ID numbers match exactly. The rule you use to decide if two cards belong together—"Do these two ID numbers match?"—is the `ON` clause. Without this rule, you would end up pairing every single employee with every single department, creating a massive, useless pile of mismatched combinations. The `ON` clause is the specific handshake criteria that validates a pair.
+
+## The precise version
+
+In PostgreSQL, a join operation combines columns from one or more tables based on common values. When you execute an `INNER JOIN`, PostgreSQL conceptually starts by generating a Cartesian product (cross join) of the relations involved, where every row of the left table is paired with every row of the right table. 
+
+The `ON` clause acts as a join qualification expression. It is a boolean expression evaluated for each candidate pair of rows. If the expression evaluates to `true`, the combined row is retained in the intermediate result set; if it evaluates to `false` or `null` (due to SQL's three-valued logic), the pair is discarded. 
+
+While PostgreSQL's query planner optimizes this process using hash joins, merge joins, or nested loops instead of actually building a full Cartesian product in memory, the logical semantic remains: the `ON` clause determines the boundary of the relation-merging step. It is distinct from the `WHERE` clause, which filters rows *after* the relations have been logically combined. 
+
+Furthermore, the `ON` clause is not restricted to simple equality (`=`). It can contain any valid boolean expression, including inequalities (`<`, `>`, `!=`) or multiple conditions combined with `AND` and `OR`. When a join uses equality, it is known as an *equijoin*; when it uses other operators, it is a *theta join*.
+
+## Hands-on walkthrough
+
+Let's create two tables: `departments` and `employees`. We will populate them with sample data and perform an inner join using the `ON` clause.
+
+```sql
+-- Create the departments table
+CREATE TABLE departments (
+    dept_id integer PRIMARY KEY,
+    dept_name varchar(50) NOT NULL
+);
+
+-- Create the employees table
+CREATE TABLE employees (
+    emp_id integer PRIMARY KEY,
+    emp_name varchar(50) NOT NULL,
+    dept_id integer REFERENCES departments(dept_id)
+);
+
+-- Insert sample data
+INSERT INTO departments (dept_id, dept_name) VALUES
+(1, 'Engineering'),
+(2, 'Marketing'),
+(3, 'Sales');
+
+INSERT INTO employees (emp_id, emp_name, dept_id) VALUES
+(101, 'Alice', 1),
+(102, 'Bob', 2),
+(103, 'Charlie', 1),
+(104, 'David', NULL); -- David has no department
+```
+
+Now, let's perform an `INNER JOIN` matching on `dept_id` using the `ON` clause:
+
+```sql
+SELECT e.emp_name, d.dept_name
+FROM employees e
+INNER JOIN departments d
+ON e.dept_id = d.dept_id;
+```
+
+Expected Output:
+
+```text
+ emp_name |  dept_name  
+----------+-------------
+ Alice    | Engineering
+ Bob      | Marketing
+ Charlie  | Engineering
+(3 rows)
+```
+
+Notice that `David` is omitted because his `dept_id` is `NULL`, and `NULL = dept_id` evaluates to `unknown` (not `true`), failing the `ON` clause condition.
+
+We can also add additional conditions directly into the `ON` clause. For example, let's join tables but only match employees whose name starts with 'A':
+
+```sql
+SELECT e.emp_name, d.dept_name
+FROM employees e
+INNER JOIN departments d
+ON e.dept_id = d.dept_id AND e.emp_name LIKE 'A%';
+```
+
+Expected Output:
+
+```text
+ emp_name |  dept_name  
+----------+-------------
+ Alice    | Engineering
+(1 row)
+```
+
+## What this is NOT
+
+It is easy to confuse the `ON` clause with other filtering mechanisms or shorthand syntaxes. Let's clarify the differences.
+
+| Concept | The `ON` Clause | What it is NOT |
+| :--- | :--- | :--- |
+| **Purpose** | Defines the criteria for pairing rows across tables. | A general row filter (like `WHERE`) that discards rows after the join is complete. |
+| **Shorthand** | Requires explicit column matching (e.g., `ON a.id = b.id`). | The `USING (id)` clause, which is a shorthand when columns share the exact same name. |
+| **Execution** | Evaluated during the relation-assembly phase. | A constraint (like `FOREIGN KEY`) that enforces data integrity at the schema level. |
+
+## The diagram matters
+
+Understanding the `ON` clause is the gateway to mastering advanced relational operations. When you write `ON e.dept_id = d.dept_id`, you are drawing a bridge between two separate physical storage structures.
+
+{/* DIAGRAM: An animation showing two tables side-by-side. Rows from the left table slide out to meet rows from the right table. A green bridge lights up only when the ID values match, merging them into a single wide row, while mismatched pairs dissolve. */}
+
+If you do not master this concept, you will struggle with outer joins (such as `LEFT JOIN` or `RIGHT JOIN`), where the placement of conditions in `ON` vs. `WHERE` completely changes the result set. In an outer join, a condition in the `ON` clause determines *what gets paired*, whereas a condition in the `WHERE` clause filters the *final output*—potentially converting your outer join back into an inner join by accident. This bridge is what transforms isolated tables into a cohesive relational database.
+
+## Read the official docs
+
+For a deeper dive into how PostgreSQL processes joins and the various syntax options available, read the official documentation: [2.6. Joins Between Tables](https://www.postgresql.org/docs/current/tutorial-join.html).
