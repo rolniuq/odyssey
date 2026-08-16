@@ -1,0 +1,149 @@
+---
+{
+  "order": 10,
+  "title": "Grouping Rows and Computing Aggregates",
+  "coreConcept": "Aggregate functions collapse multiple rows of data into a single summary row, optionally partitioned into distinct groups using the GROUP BY clause.",
+  "docSource": "https://www.postgresql.org/docs/current/tutorial-agg.html",
+  "docTitle": "2.7. Aggregate Functions",
+  "difficulty": "intermediate",
+  "objectives": ["Explain how the GROUP BY clause partitions rows into distinct groups","Identify why non-aggregated columns cannot be selected alongside aggregates without grouping","Differentiate between the filtering behaviors of WHERE and HAVING clauses"],
+  "quiz": [
+  { "question": "In the fruit market analogy, what do the 'colored baskets' represent in a PostgreSQL query?",
+    "options": ["The columns specified in the SELECT list that are wrapped in aggregate functions.","The individual transaction slips written down by the cashiers.","The distinct groups created by the GROUP BY clause where matching rows are gathered.","The WHERE clause filters that discard unwanted transactions."],
+    "answerIndex": 2,
+    "explanation": "The baskets represent the distinct groups created by the GROUP BY clause, where matching rows (slips of paper) are gathered together before being summarized." },
+  { "question": "Why does PostgreSQL raise an error if you select a non-aggregated column that is not listed in the GROUP BY clause?",
+    "options": ["Because the query planner cannot allocate enough memory to sort non-grouped columns.","Because doing so violates relational algebra, as PostgreSQL cannot deterministically choose which of the multiple raw row values to display in the single collapsed output row.","Because aggregate functions can only process numeric data types, and non-grouped columns are always text.","Because the server process requires all columns in a query to be indexed before grouping."],
+    "answerIndex": 1,
+    "explanation": "When rows are collapsed into a single group, PostgreSQL cannot safely decide which individual row's value to display for a non-aggregated column, violating relational algebra." },
+  { "question": "In the hands-on walkthrough, what was the result of attempting to select the product column while grouping only by category?",
+    "options": ["PostgreSQL successfully returned the first product alphabetically for each category.","PostgreSQL returned a comma-separated list of all products in that category.","PostgreSQL threw an error stating that the column must appear in the GROUP BY clause or be used in an aggregate function.","PostgreSQL automatically added product to the GROUP BY clause and executed the query."],
+    "answerIndex": 2,
+    "explanation": "As shown in the walkthrough, attempting to select product without grouping by it or wrapping it in an aggregate function results in an error: 'ERROR: column \"item_sales.product\" must appear in the GROUP BY clause or be used in an aggregate function'." },
+  { "question": "According to the 'What this is NOT' section, how does the WHERE clause differ from the HAVING clause?",
+    "options": ["WHERE filters individual raw rows before grouping, while HAVING filters grouped results after aggregation.","WHERE can only filter text columns, while HAVING can only filter numeric columns.","WHERE is used inside aggregate functions, while HAVING is used inside window functions.","There is no difference; they are completely interchangeable aliases in PostgreSQL."],
+    "answerIndex": 0,
+    "explanation": "As detailed in the table, WHERE filters raw rows before they are grouped and aggregated, whereas HAVING filters the groups themselves after aggregation has occurred." },
+  { "question": "In the logical query execution order described in 'The diagram matters', when does the grouping (GROUP BY) occur relative to the WHERE filter and the SELECT projection?",
+    "options": ["After the SELECT projection but before the WHERE filter.","Before both the WHERE filter and the FROM clause.","After the WHERE filter but before the SELECT projection (where aggregates are computed).","After the ORDER BY clause has sorted the final output."],
+    "answerIndex": 2,
+    "explanation": "PostgreSQL first gathers rows (FROM), filters them (WHERE), groups them (GROUP BY), and then computes the output columns and aggregates (SELECT)." },
+  { "question": "What is the title of the official PostgreSQL documentation section linked at the end of the lesson?",
+    "options": ["2.7. Aggregate Functions","9.21. Aggregate Expressions","Grouping and Summarizing Data","Advanced Aggregations and Windowing"],
+    "answerIndex": 0,
+    "explanation": "The final section links to the official documentation titled '2.7. Aggregate Functions'." }
+  ]
+}
+---
+
+Imagine you run a busy fruit market. Throughout the day, your cashiers write down every single sale on a long paper tape: "3 apples, 2 oranges, 1 apple, 5 bananas, 2 apples." At the end of the day, looking at this massive list of individual transactions is overwhelming. To make sense of it, you grab a stack of colored baskets—one for apples, one for oranges, and one for bananas. You walk down the list, cutting up the paper tape and tossing each line item into its matching basket. Once every slip of paper is sorted, you stand over the "apple" basket with a calculator, add up the numbers, and write down a single number: "6 apples." You repeat this for the other baskets. You have successfully collapsed thousands of individual transaction slips into a neat, one-row-per-fruit summary.
+
+## The precise version
+
+In PostgreSQL, this process of sorting rows into baskets and calculating a single summary value per basket is called **grouping and aggregation**.
+
+When you run a query with an aggregate function (such as `SUM()`, `AVG()`, `COUNT()`, `MAX()`, or `MIN()`), the PostgreSQL execution engine processes a set of input rows and reduces them to a single output row.
+
+Without a `GROUP BY` clause, an aggregate function treats the entire set of selected rows as a single group, returning exactly one row. For example, calculating the average price of all products in your inventory returns a single number.
+
+When you introduce the `GROUP BY` clause, you instruct the query planner to partition the intermediate relation (the dataset returned by the `FROM` and `WHERE` clauses) into distinct groups based on matching values in the specified grouping columns.
+
+Under the hood, PostgreSQL uses state transition functions to compute these values. For each row in a group, the execution engine passes the current running state and the new row's value to an internal transition function, which returns an updated state. Once all rows in a group are processed, a final function may be applied to return the aggregate value.
+
+Crucially, because aggregation collapses multiple rows into one, you cannot select individual, non-aggregated columns alongside aggregates unless those columns are explicitly listed in the `GROUP BY` clause. Doing so violates relational algebra: PostgreSQL cannot deterministically choose which of the many raw row values to display next to the single aggregated result.
+
+## Hands-on walkthrough
+
+Let's build a small table of sales and run some aggregate queries. We will create a table named `item_sales`, populate it with some records, and then perform both simple and grouped aggregations.
+
+```sql
+-- Step 1: Create the table
+CREATE TABLE item_sales (
+    id SERIAL PRIMARY KEY,
+    category VARCHAR(50),
+    product VARCHAR(50),
+    quantity INT,
+    price_per_unit NUMERIC(10, 2)
+);
+
+-- Step 2: Insert sample data
+INSERT INTO item_sales (category, product, quantity, price_per_unit) VALUES
+('Fruit', 'Apple', 10, 1.50),
+('Fruit', 'Orange', 5, 2.00),
+('Fruit', 'Apple', 15, 1.50),
+('Vegetable', 'Carrot', 20, 0.80),
+('Vegetable', 'Broccoli', 8, 2.50),
+('Vegetable', 'Carrot', 12, 0.80);
+```
+
+Let's run a simple aggregate query to find the total quantity of all items sold across the entire table:
+
+```sql
+SELECT SUM(quantity) AS total_items_sold FROM item_sales;
+```
+
+Expected Output:
+```text
+ total_items_sold
+------------------
+               70
+(1 row)
+```
+
+Now, let's group our sales by `category` and calculate the total quantity and average price per unit for each category.
+
+```sql
+SELECT category, SUM(quantity) AS total_qty, ROUND(AVG(price_per_unit), 2) AS avg_price
+FROM item_sales
+GROUP BY category;
+```
+
+Expected Output:
+```text
+ category  | total_qty | avg_price
+-----------+-----------+-----------
+ Fruit     |        30 |      1.67
+ Vegetable |        40 |      1.37
+(2 rows)
+```
+
+Notice how the execution engine collapsed our 6 raw rows into exactly 2 rows—one for each unique category.
+
+What happens if we try to select the `product` column without grouping by it?
+
+```sql
+SELECT category, product, SUM(quantity)
+FROM item_sales
+GROUP BY category;
+```
+
+Expected Output:
+```text
+ERROR:  column "item_sales.product" must appear in the GROUP BY clause or be used in an aggregate function
+LINE 1: SELECT category, product, SUM(quantity)
+                         ^
+```
+
+PostgreSQL rejects this because `product` has multiple different values (like 'Apple' and 'Orange') within the 'Fruit' category, and it cannot safely choose which one to display in the single 'Fruit' output row.
+
+## What this is NOT
+
+Let's clarify what grouping and aggregation are not, to avoid common pitfalls.
+
+| Concept | Grouping & Aggregation | What it is NOT |
+| :--- | :--- | :--- |
+| **Row Reduction** | Collapses multiple rows into a single summary row per group. | **`ORDER BY`**: This merely changes the display order of the rows without reducing their count. |
+| **Filtering Groups** | Uses `HAVING` to filter groups *after* aggregation has occurred. | **`WHERE`**: This filters individual raw rows *before* they are grouped and aggregated. |
+| **Window Functions** | Computes aggregate values across a partition but retains every individual row. | **Standard Aggregates**: Standard aggregates *must* collapse the rows; they cannot preserve individual row identities. |
+
+## The diagram matters
+
+Understanding the sequence of query execution is critical. When a query runs, PostgreSQL does not execute clauses in the order they are written. It first gathers rows (`FROM` and `JOIN`), filters them (`WHERE`), groups them (`GROUP BY`), filters the grouped results (`HAVING`), computes the output columns (`SELECT` and aggregates), and finally sorts them (`ORDER BY`).
+
+{/* DIAGRAM: An animation showing raw rows flowing from a table, passing through a WHERE filter, being sorted into distinct color-coded buckets by GROUP BY, having aggregate functions like SUM() applied to collapse each bucket into a single row, and finally passing through a HAVING filter to produce the final output. */}
+
+Mastering this pipeline unlocks the ability to write complex analytical queries. Once you understand how rows are grouped, you can confidently use `HAVING` to filter your grouped data (for example, finding only categories that sold more than 35 items total) and transition to advanced analytical tools like window functions.
+
+## Read the official docs
+
+To deepen your understanding of how aggregate functions handle null values, how to use multiple grouping sets, and the list of built-in aggregates, read the official PostgreSQL documentation on [2.7. Aggregate Functions](https://www.postgresql.org/docs/current/tutorial-agg.html).
