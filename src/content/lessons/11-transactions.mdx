@@ -1,0 +1,173 @@
+---
+{
+  "order": 11,
+  "title": "Transactions: All-or-Nothing",
+  "coreConcept": "A transaction bundles multiple SQL statements into a single, atomic unit of work that either succeeds completely or has no effect at all.",
+  "docSource": "https://www.postgresql.org/docs/current/tutorial-transactions.html",
+  "docTitle": "2.4. Transactions",
+  "difficulty": "intermediate",
+  "objectives": ["Explain how transactions guarantee database consistency using the ACID model","Initiate, commit, and roll back transactions using standard PostgreSQL SQL commands","Differentiate between database-level transactions and application-level error handling"],
+  "quiz": [
+  { "question": "In the vacation booking analogy, what is the main risk of not having an 'all-or-nothing' system?",
+    "options": ["You might be charged twice for the same flight ticket.","You could end up with a partially completed booking (such as a flight but no hotel), leaving you in an inconsistent state.","The booking system will run slower because of concurrent users.","Your booking details will be visible to other customers."],
+    "answerIndex": 1,
+    "explanation": "The analogy illustrates that without an all-or-nothing mechanism, a failure in one step of a multi-step process leaves you with a partially completed, inconsistent state (e.g., holding a flight ticket but having no hotel room)." },
+  { "question": "How does PostgreSQL ensure that uncommitted changes from an aborted transaction do not corrupt the database?",
+    "options": ["It deletes the entire database cluster and restores it from a backup.","It locks the entire hard drive until the transaction is complete.","It uses MVCC and marks the transaction as aborted in the commit log (pg_xact), causing other sessions to ignore those row versions.","It forces the application developer to write custom SQL to undo each statement."],
+    "answerIndex": 2,
+    "explanation": "PostgreSQL utilizes Multi-Version Concurrency Control (MVCC) and the write-ahead log. If a transaction aborts, it is marked as aborted in the internal commit log (pg_xact), and other sessions simply ignore those uncommitted row versions." },
+  { "question": "In the hands-on walkthrough, what was the final balance of Alice's account after the transaction containing the ROLLBACK command was executed?",
+    "options": ["100.00","20.00","50.00","70.00"],
+    "answerIndex": 3,
+    "explanation": "The first successful transaction left Alice's balance at 70.00. The second transaction attempted to subtract 50.00 but was rolled back, meaning its changes were discarded and Alice's balance remained at 70.00." },
+  { "question": "According to the 'What this is NOT' section, how does a PostgreSQL transaction differ from an application-level try/catch block?",
+    "options": ["Application-level try/catch blocks can automatically rollback database changes without database support.","A transaction bundles SQL commands inside the database session, whereas a try/catch block only handles application-level errors and cannot rollback database state on its own.","Transactions are written in Python, while try/catch blocks are written in SQL.","There is no difference; they are exactly the same concept."],
+    "answerIndex": 1,
+    "explanation": "An application-level try/catch block handles code exceptions but cannot manage database state or undo database modifications without issuing database commands like ROLLBACK." },
+  { "question": "What advanced PostgreSQL features are unlocked once you master the concept of transactions?",
+    "options": ["Savepoints and Transaction Isolation Levels.","Automatic translation of SQL to NoSQL.","Hardware overclocking and disk defragmentation.","Writing custom operating system kernels."],
+    "answerIndex": 0,
+    "explanation": "As explained in the 'The diagram matters' section, mastering transactions is the prerequisite for understanding Savepoints (partial rollbacks) and Transaction Isolation Levels." },
+  { "question": "What is the exact title of the official PostgreSQL documentation section linked at the end of this lesson?",
+    "options": ["2.4. Transactions","3.1. Advanced Transactions","1.2. ACID Compliance","4.5. Concurrency Control"],
+    "answerIndex": 0,
+    "explanation": "The official documentation link provided at the end of the lesson is titled '2.4. Transactions'." }
+  ]
+}
+---
+
+Imagine booking a complete vacation package online where you must reserve a flight, a hotel room, and a rental car. If the flight and hotel bookings succeed, but the rental car reservation suddenly fails at the very last second, you do not want to be left with a half-booked trip where you have spent money on a flight but have no vehicle. You want the entire booking process to behave as a single, indivisible unit: either every single reservation succeeds together, or the entire attempt is completely wiped out as if you never clicked "Book Now." This ensures you are never left in an inconsistent, expensive limbo. In database systems, we group multiple operations together so they behave exactly like this all-or-nothing vacation booking.
+
+## The precise version
+
+In PostgreSQL, this "all-or-nothing" behavior is executed using **Transactions**. A transaction is a fundamental database concept that bundles multiple SQL statements into a single, atomic unit of work. PostgreSQL guarantees that either all of the statements within the transaction are executed and committed to the disk, or none of them are.
+
+This guarantee is built upon the **ACID** properties of relational databases:
+*   **Atomicity:** The "all-or-nothing" rule. If one part fails, the entire transaction is aborted.
+*   **Consistency:** Ensuring the database transitions from one valid state to another, maintaining all constraints.
+*   **Isolation:** Keeping concurrent transactions from interfering with each other.
+*   **Durability:** Guaranteeing that committed transactions survive system crashes or power losses.
+
+Under the hood, PostgreSQL manages this using **Write-Ahead Logging (WAL)** and **Multi-Version Concurrency Control (MVCC)**. When you modify data, the postgres server process does not immediately overwrite the existing data on the disk heap files. Instead, it first writes the change to the WAL (a secure, sequential log of changes on disk). 
+
+The server process then keeps track of which transaction created or modified each row version. If the transaction is aborted (rolled back), PostgreSQL simply marks the transaction as aborted in its internal commit log (`pg_xact`), and other concurrent sessions will continue to ignore those changes as if they never happened. Only when a transaction is successfully committed are its changes made permanently visible to the rest of the database cluster.
+
+{/* DIAGRAM: Transaction State Transition (Active -> Committed or Aborted) */}
+
+## Hands-on walkthrough
+
+Let's see this in action by simulating a classic bank transfer between two accounts. We will create a table, insert two accounts, and then perform a transaction that we intentionally abort to prove that the database state remains completely untouched.
+
+First, let's set up our table and initial data:
+
+```sql
+-- Create a simple accounts table
+CREATE TABLE accounts (
+    id VARCHAR(50) PRIMARY KEY,
+    balance NUMERIC(10, 2) NOT NULL CHECK (balance >= 0)
+);
+
+-- Insert initial balances for Alice and Bob
+INSERT INTO accounts (id, balance) VALUES
+('Alice', 100.00),
+('Bob', 100.00);
+```
+
+Now, let's verify our initial state:
+
+```sql
+SELECT * FROM accounts;
+```
+
+Output:
+```text
+  id   | balance
+-------+---------
+ Alice |  100.00
+ Bob   |  100.00
+(2 rows)
+```
+
+Next, let's perform a successful transaction using `BEGIN` and `COMMIT`. We will transfer $30.00 from Alice to Bob.
+
+```sql
+BEGIN;
+
+UPDATE accounts
+SET balance = balance - 30.00
+WHERE id = 'Alice';
+
+UPDATE accounts
+SET balance = balance + 30.00
+WHERE id = 'Bob';
+
+COMMIT;
+```
+
+Output:
+```text
+BEGIN
+UPDATE 1
+UPDATE 1
+COMMIT
+```
+
+If you query the table now, you will see the updated balances: Alice has 70.00 and Bob has 130.00.
+
+Now, let's simulate a failure. We will attempt to transfer $50.00 from Alice to Bob, but we will abort the transaction midway using `ROLLBACK` to simulate an error or cancellation.
+
+```sql
+BEGIN;
+
+UPDATE accounts
+SET balance = balance - 50.00
+WHERE id = 'Alice';
+
+-- Imagine an error occurs here, or we decide to cancel.
+-- We issue a ROLLBACK instead of a COMMIT.
+ROLLBACK;
+```
+
+Output:
+```text
+BEGIN
+UPDATE 1
+ROLLBACK
+```
+
+Let's check the balances again:
+
+```sql
+SELECT * FROM accounts;
+```
+
+Output:
+```text
+  id   | balance
+-------+---------
+ Alice |   70.00
+ Bob   |  130.00
+(2 rows)
+```
+
+Even though the first `UPDATE` statement succeeded and reported `UPDATE 1`, the `ROLLBACK` command completely discarded that change. Alice's balance remained at 70.00, preserving database integrity.
+
+## What this is NOT
+
+| Concept | A PostgreSQL Transaction | What it is NOT |
+| :--- | :--- | :--- |
+| **Scope** | Bundles SQL commands inside a single database session. | It is **not** an application-level `try/catch` block. Application code can catch errors, but only the database can rollback database changes. |
+| **Locking** | Allows concurrent reads using MVCC without blocking readers. | It is **not** an exclusive table lock. Other users can read the old data while you are modifying it inside an active transaction. |
+| **Persistence** | Ensures changes are safely written to the WAL before committing. | It is **not** a temporary memory buffer. Once committed, changes are durable and survive power losses. |
+
+## The diagram matters
+
+Understanding transactions is the gateway to mastering database concurrency and reliability. In a busy production database, hundreds of clients are reading and writing data at the exact same millisecond. Without transactions, their changes would overwrite each other, causing "dirty reads," lost updates, and corrupt balances.
+
+{/* DIAGRAM: Concurrent Transactions and MVCC isolation */}
+
+By mastering transactions, you unlock advanced PostgreSQL features like **Savepoints** (which allow you to roll back only a portion of a transaction) and **Transaction Isolation Levels** (which let you control exactly how isolated concurrent transactions are from one another).
+
+## Read the official docs
+
+To dive deeper into how PostgreSQL handles transactions, savepoints, and isolation, read the official documentation: [2.4. Transactions](https://www.postgresql.org/docs/current/tutorial-transactions.html).
