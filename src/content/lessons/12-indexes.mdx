@@ -1,0 +1,134 @@
+---
+{
+  "order": 12,
+  "title": "Indexes: Making Lookups Fast",
+  "coreConcept": "An index is a separate physical structure that maps column values to their exact storage locations, allowing PostgreSQL to bypass scanning the entire table.",
+  "docSource": "https://www.postgresql.org/docs/current/indexes.html",
+  "docTitle": "Indexes",
+  "difficulty": "intermediate",
+  "objectives": ["Explain how a B-Tree index speeds up read queries","Identify the write-performance trade-offs of creating indexes","Analyze query plans using EXPLAIN to verify index usage"],
+  "quiz": [
+  { "question": "In the library card catalog analogy, what does the card catalog represent compared to the pile of books?",
+    "options": ["The card catalog represents the index, while the pile of books represents the main table storage (the heap).","The card catalog represents the query planner, while the pile of books represents the SQL query.","The card catalog represents the primary key, while the pile of books represents the foreign keys.","The card catalog represents the disk cache, while the pile of books represents the physical hard drive."],
+    "answerIndex": 0,
+    "explanation": "The card catalog is a separate, highly organized reference tool (the index) that points you directly to the physical location of the unsorted books (the heap)." },
+  { "question": "What physical information does a leaf node in a PostgreSQL B-Tree index actually contain to locate a row?",
+    "options": ["The entire row's data serialized as a JSON binary object.","The indexed column's key value and a Tuple ID (TID) pointing to the row's physical location in the heap.","A logical row number that PostgreSQL counts sequentially from the start of the table.","The transaction ID (xmin) of the transaction that inserted the row."],
+    "answerIndex": 1,
+    "explanation": "A B-Tree index leaf node stores the key value (the indexed data) and a Tuple ID (TID), which consists of a block number and an offset pointing directly to the row in the heap." },
+  { "question": "In the hands-on walkthrough, what query plan node was shown before the index was created, and what was its cost?",
+    "options": ["An Index Scan with a cost of 8.30.","A Seq Scan with a cost of 180.00.","A Bitmap Heap Scan with a cost of 0.00.","A Hash Join with a cost of 10000.00."],
+    "answerIndex": 1,
+    "explanation": "Before the index was created, PostgreSQL had to perform a Seq Scan (Sequential Scan) to read every row, resulting in a cost of 180.00." },
+  { "question": "According to the 'What this is NOT' table, how do indexes affect write operations like INSERT and UPDATE?",
+    "options": ["They speed them up because the database can find the insertion point faster.","They have absolutely zero effect on write operations.","They slow them down because the index structure must also be updated to stay in sync.","They temporarily disable writes until the index is manually rebuilt."],
+    "answerIndex": 2,
+    "explanation": "Indexes slow down write operations because every time a row is inserted, updated, or deleted, PostgreSQL must also perform write operations to keep the index structure in sync." },
+  { "question": "Why does understanding the physical separation between the index and the heap unlock the concept of an 'Index-Only Scan'?",
+    "options": ["Because it allows PostgreSQL to delete the heap entirely and store all data in the index.","Because if the index contains all the columns requested by the query, PostgreSQL can bypass fetching pages from the heap entirely.","Because it proves that the query planner always ignores the heap for write operations.","Because it allows the index to be stored in RAM while the heap is stored on tape."],
+    "answerIndex": 1,
+    "explanation": "An Index-Only Scan occurs when the index itself contains all the data requested by the query (often using INCLUDE columns), allowing PostgreSQL to completely skip reading the heap files." },
+  { "question": "What is the exact title of the official PostgreSQL documentation page linked at the end of this lesson?",
+    "options": ["Index Types and Optimization","Indexes","Making Lookups Fast with B-Trees","PostgreSQL Performance Tuning: Indexes"],
+    "answerIndex": 1,
+    "explanation": "The official documentation page linked is titled 'Indexes'." }
+  ]
+}
+---
+
+Imagine you are in a massive physical library with ten thousand books, but they are piled in the middle of the room in the exact order they were delivered. If you want to find a book titled 'The Midnight Whale', you have to pick up every single book, one by one, from the top of the pile to the bottom. This exhausting search is what happens when you look for data without organization. Now, imagine the librarian builds a small, alphabetical card catalog in a wooden cabinet by the door. Instead of touching ten thousand books, you flip to the letter 'M' in the cards, find 'The Midnight Whale', read its shelf location (e.g., 'Aisle 4, Shelf 2'), and walk directly to it. The card catalog is a separate, highly organized tool that points you to the actual, messy pile of books.
+
+## The precise version
+
+In PostgreSQL, when you query a table without an index, the database engine performs a **sequential scan** (or table scan). The server process reads every single page of data on the disk from start to finish to find matching rows. For large tables, this causes massive disk I/O and slow queries.
+
+An **index** is a distinct, auxiliary physical structure stored on disk, separate from the main table storage (which is called the **heap**). The index maps key values (the data from your indexed columns) to their exact physical locations on disk. These physical locations are represented as **Tuple IDs (TIDs)**, which consist of a block number and an offset within that block.
+
+By default, PostgreSQL creates a **B-Tree** (Balanced Tree) index. When you execute a `CREATE INDEX` command, the postgres server process reads the table, extracts the column values, sorts them, and builds a balanced tree structure. 
+
+Each leaf node in this B-Tree contains:
+1. The indexed column value (the key).
+2. The TID pointing to the corresponding row in the heap.
+
+When a query runs with a matching `WHERE` clause, the **query planner** chooses an **Index Scan**. It traverses the B-Tree from the root node down to the leaf nodes in $O(\log N)$ time, retrieves the TIDs, and then fetches only those specific pages from the heap. However, indexes are not free: every `INSERT`, `UPDATE`, or `DELETE` on the table also requires writing to the index, adding write overhead.
+
+{/* DIAGRAM: An animation showing a query planner looking for a value. First, it scans the Heap block-by-block (Seq Scan). Then, we build a B-Tree index. The planner now traverses the B-Tree nodes down to a leaf, finds the TID (Block 3, Offset 2), and jumps directly to that single spot in the Heap. */}
+
+## Hands-on walkthrough
+
+Let's create a table of users, populate it with enough rows to see a difference, and analyze how PostgreSQL searches it before and after creating an index.
+
+First, let's create a table and populate it with 10,000 dummy rows:
+
+```sql
+-- Create a table of users
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Populate with 10,000 dummy rows
+INSERT INTO users (email)
+SELECT 'user_' || i || '@example.com'
+FROM generate_series(1, 10000) AS i;
+```
+
+Now, let's use the `EXPLAIN` command to inspect the query plan when searching for a specific email address *before* we have an index on that column:
+
+```sql
+EXPLAIN SELECT * FROM users WHERE email = 'user_5000@example.com';
+```
+
+Expected output:
+
+```text
+                            QUERY PLAN
+------------------------------------------------------------------
+ Seq Scan on users  (cost=0.00..180.00 rows=1 width=27)
+   Filter: ((email)::text = 'user_5000@example.com'::text)
+```
+
+Notice the `Seq Scan` (Sequential Scan). The query planner estimates a cost of `180.00` because it has to read all 10,000 rows in the heap to find our match.
+
+Now, let's create a B-Tree index on the `email` column:
+
+```sql
+CREATE INDEX idx_users_email ON users(email);
+```
+
+Let's run the exact same `EXPLAIN` command again:
+
+```sql
+EXPLAIN SELECT * FROM users WHERE email = 'user_5000@example.com';
+```
+
+Expected output:
+
+```text
+                                 QUERY PLAN
+-----------------------------------------------------------------------------
+ Index Scan using idx_users_email on users  (cost=0.29..8.30 rows=1 width=27)
+   Index Cond: ((email)::text = 'user_5000@example.com'::text)
+```
+
+Now, the query planner chooses an `Index Scan` using our new `idx_users_email` index. The estimated cost has dropped from `180.00` to `8.30` because PostgreSQL can jump straight to the row using the index's TIDs.
+
+## What this is NOT
+
+| Concept | Index | What it is NOT |
+| :--- | :--- | :--- |
+| **Storage Location** | Separate physical file on disk | It is **NOT** stored inside the main table file. It is a separate structure that must be updated on every write. |
+| **Performance Impact** | Speeds up reads (`SELECT`) | It does **NOT** speed up writes (`INSERT`, `UPDATE`, `DELETE`). It actually slows them down slightly due to maintenance overhead. |
+| **Automatic Creation** | Automatically created *only* for Primary Keys and Unique constraints | It does **NOT** automatically index foreign keys or frequently queried columns. You must create those manually. |
+| **Usage Guarantee** | The query planner *chooses* whether to use it | It is **NOT** guaranteed to be used. If the table is very small, or a query returns a large percentage of the table, the planner will ignore the index and use a sequential scan. |
+
+## The diagram matters
+
+Understanding the physical separation between the Index and the Heap is crucial because it unlocks advanced performance tuning. 
+
+For example, once you understand that an Index Scan has to jump from the index file to the heap file to get non-indexed columns, you can unlock the **Index-Only Scan** using `INCLUDE` columns (covering indexes). This allows PostgreSQL to answer the entire query directly from the index without ever touching the heap, saving massive amounts of disk I/O.
+
+## Read the official docs
+
+To learn more about the different types of indexes (like GIN, GiST, and Hash) and how to manage them, read the official PostgreSQL documentation on [Indexes](https://www.postgresql.org/docs/current/indexes.html).
