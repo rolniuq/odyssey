@@ -1,0 +1,167 @@
+---
+{
+  "order": 14,
+  "title": "MVCC and Isolation Levels",
+  "coreConcept": "PostgreSQL uses Multi-Version Concurrency Control (MVCC) to allow concurrent reading and writing without blocking, managed through isolation levels.",
+  "docSource": "https://www.postgresql.org/docs/current/mvcc-intro.html",
+  "docTitle": "Concurrency Control",
+  "difficulty": "advanced",
+  "objectives": ["Explain how MVCC uses hidden row columns to manage concurrent data access","Identify the differences between Read Committed, Repeatable Read, and Serializable isolation levels","Demonstrate how concurrent transactions perceive uncommitted changes"],
+  "quiz": [
+  { "question": "In the library analogy, what represents the mechanism that allows readers to continue studying without being blocked by someone making an edit?",
+    "options": ["Locking the entire room so only one researcher can work at a time.","Handing researchers their own consistent \"photocopies\" (versions) of the page.","Forcing researchers to queue up and read a single physical book.","Deleting older pages as soon as a researcher starts writing a correction."],
+    "answerIndex": 1,
+    "explanation": "The analogy explains that instead of blocking readers, researchers are handed consistent photocopies (representing row versions) so they can read while others write." },
+  { "question": "Under the hood of PostgreSQL's MVCC, what do the hidden system columns xmin and xmax represent?",
+    "options": ["The minimum and maximum allowed values for numeric columns in that row.","The transaction IDs responsible for creating (inserting) and expiring (deleting/replacing) a row version.","The physical disk sector coordinates where the row starts and ends.","The timestamp of the last read operation and the last write operation."],
+    "answerIndex": 1,
+    "explanation": "xmin records the transaction ID that inserted the row, and xmax records the transaction ID that deleted or updated (expired) the row. These are critical for determining row visibility." },
+  { "question": "In the hands-on walkthrough, why did Session B see the old balance of 1000.00 even after Session A executed the UPDATE statement?",
+    "options": ["Because Session B was running in Serializable mode which blocked Session A's update.","Because Session A's transaction was not yet committed, so Session B's snapshot ignored the uncommitted row version.","Because PostgreSQL automatically rolls back any update that is queried by another session.","Because Session B used a dirty read isolation level to bypass the lock."],
+    "answerIndex": 1,
+    "explanation": "In Read Committed isolation (the default), a transaction only sees committed data. Since Session A had not committed, Session B read the older committed version where xmax was not yet committed." },
+  { "question": "According to the \"What this is NOT\" table, how does the Serializable isolation level physically behave in PostgreSQL?",
+    "options": ["It physically locks the entire database, forcing all transactions to execute one-by-one.","It duplicates the entire database files on disk for every active transaction.","It provides a logical guarantee of serial outcomes without physically running transactions one-by-one.","It automatically deletes active user data to prevent conflicts."],
+    "answerIndex": 2,
+    "explanation": "Serializable isolation in PostgreSQL uses Serializable Snapshot Isolation (SSI) to logically guarantee serial outcomes without destroying performance by running everything one-by-one physically." },
+  { "question": "Why does a long-running transaction prevent VACUUM from cleaning up dead row versions (tuples)?",
+    "options": ["Because long-running transactions lock the VACUUM system catalog tables directly.","Because those dead versions might still need to be visible to the active long-running transaction's snapshot.","Because VACUUM only runs when there are zero active connections to the database.","Because long-running transactions automatically disable the background autovacuum daemon."],
+    "answerIndex": 1,
+    "explanation": "As explained in 'The diagram matters', VACUUM cannot reclaim dead tuples if they are still visible to any active transaction's snapshot. Long-running transactions keep old snapshots active, leading to table bloat." },
+  { "question": "What is the title of the official PostgreSQL documentation page linked at the end of this lesson?",
+    "options": ["Transaction Isolation Levels","Concurrency Control","MVCC Architecture","Locking Protocols"],
+    "answerIndex": 1,
+    "explanation": "The final section links to the official documentation page titled 'Concurrency Control'." }
+  ]
+}
+---
+
+Imagine a busy public library where hundreds of researchers are studying the exact same historical manuscript. Instead of making everyone queue up to read a single physical book—which would grind research to a halt—or locking the room whenever someone wants to pencil in a correction, the librarian uses a clever system. Every time a researcher wants to edit a page, they are handed a fresh photocopy of that page to make their changes on. Meanwhile, other researchers continue reading their own consistent photocopies of the book as it existed when they walked in. Once an edit is approved and finalized, it becomes the "official" version for any *new* researchers entering the library, while the older researchers finish reading their older, frozen-in-time copies. This prevents readers from blocking writers, and writers from blocking readers.
+
+## The precise version
+
+In PostgreSQL, this "photocopy" mechanism is called **Multi-Version Concurrency Control (MVCC)**. Instead of using raw database-wide locks that block read operations while write operations are occurring, the PostgreSQL server process manages one or more databases inside a single cluster by maintaining multiple physical versions of the same row (called **tuples**) in the table storage.
+
+Every table row has hidden system columns that track transaction states. The two most important are:
+- `xmin`: The transaction ID (txid) that created/inserted this version of the row.
+- `xmax`: The transaction ID that deleted or replaced this version of the row (set to 0 if the row is active and has not been deleted or updated).
+
+When a transaction updates a row, PostgreSQL does not overwrite the existing data in place. Instead, it marks the old row version as expired (by setting its `xmax` to the current transaction ID) and inserts a brand-new row version (with its `xmin` set to the current transaction ID).
+
+To determine which version of a row a particular transaction can see, PostgreSQL uses **Isolation Levels** and **Snapshots**. A snapshot is a record of which transactions were active (uncommitted) at a specific point in time.
+
+PostgreSQL supports three distinct isolation behaviors mapped from the SQL standard:
+1. **Read Committed** (the default): Each query within a transaction sees only data committed before *that specific query* began. If another transaction commits changes mid-way through your transaction, subsequent queries in your transaction will see those changes.
+2. **Repeatable Read**: All queries within a transaction see only data committed before *the entire transaction* began. It prevents "non-repeatable reads" (where reading the same row twice yields different values) and "phantom reads" (where new rows appear in a range query).
+3. **Serializable**: The strictest level. It guarantees that the concurrent execution of transactions yields the exact same state as if they were run one after another (serially). It uses Serializable Snapshot Isolation (SSI) to detect write-skew anomalies and aborts conflicting transactions.
+
+## Hands-on walkthrough
+
+Let's demonstrate how MVCC hides uncommitted changes and how different isolation levels behave. We will open two concurrent sessions (Session A and Session B).
+
+First, let's set up a table and insert a row.
+
+```sql
+-- Session A: Setup
+CREATE TABLE bank_accounts (
+    id SERIAL PRIMARY KEY,
+    owner VARCHAR(50),
+    balance NUMERIC
+);
+
+INSERT INTO bank_accounts (owner, balance) VALUES ('Alice', 1000.00);
+```
+
+Now, let's see MVCC in action by looking at the hidden system columns `xmin` and `xmax`.
+
+```sql
+-- Session A: View hidden columns
+SELECT xmin, xmax, owner, balance FROM bank_accounts;
+```
+
+Expected output:
+```text
+ xmin  | xmax | owner | balance 
+-------+------+-------+---------
+ 12501 |    0 | Alice | 1000.00
+(1 row)
+```
+*(Note: Your actual transaction ID integers will vary based on your database's transaction counter history).*
+
+Now, let's start a transaction in Session A and update the balance, but *do not commit yet*.
+
+```sql
+-- Session A: Start transaction and update
+BEGIN;
+UPDATE bank_accounts SET balance = 1200.00 WHERE owner = 'Alice';
+SELECT xmin, xmax, owner, balance FROM bank_accounts;
+```
+
+Expected output in Session A:
+```text
+ xmin  | xmax  | owner | balance 
+-------+-------+-------+---------
+ 12502 |     0 | Alice | 1200.00
+(1 row)
+```
+Notice that Session A sees the new row version (created by transaction `12502`).
+
+Now, open Session B (simulating a concurrent user) and query the table under the default Read Committed level.
+
+```sql
+-- Session B: Query concurrently
+SELECT xmin, xmax, owner, balance FROM bank_accounts;
+```
+
+Expected output in Session B:
+```text
+ xmin  | xmax  | owner | balance 
+-------+-------+-------+---------
+ 12501 | 12502 | Alice | 1000.00
+(1 row)
+```
+Look closely! Session B still sees the *old* row version (created by `12501`). It also sees that transaction `12502` has marked this row for deletion (`xmax = 12502`), but because transaction `12502` has not committed yet, Session B is served the old, valid version of the data. Readers do not block writers, and writers do not block readers!
+
+If Session A commits:
+
+```sql
+-- Session A
+COMMIT;
+```
+
+Now Session B queries again:
+
+```sql
+-- Session B
+SELECT xmin, xmax, owner, balance FROM bank_accounts;
+```
+
+Expected output in Session B:
+```text
+ xmin  | xmax | owner | balance 
+-------+------+-------+---------
+ 12502 |    0 | Alice | 1200.00
+(1 row)
+```
+The old row version (`xmin 12501`) is now dead and will eventually be cleaned up by the VACUUM process.
+
+## What this is NOT
+
+| Concept | What it actually is | What it is NOT |
+| :--- | :--- | :--- |
+| **MVCC** | A mechanism that keeps multiple physical versions of rows (tuples) in the same table storage space. | A system that duplicates entire database files or tables for each user. |
+| **Read Committed** | An isolation level where each statement sees a snapshot of committed data at the start of *that statement*. | An isolation level that guarantees you will read the same data if you run the query twice in one transaction. |
+| **Serializable** | A logical guarantee that transaction outcomes are equivalent to some serial execution order. | A physical lock that forces transactions to run strictly one-by-one, destroying performance. |
+| **VACUUM** | A background process that reclaims storage occupied by dead row versions (tuples). | A command that deletes active or uncommitted user data. |
+
+## The diagram matters
+
+Understanding MVCC is the gateway to mastering database performance, locking behaviors, and data integrity.
+
+{/* DIAGRAM: Animate a single row slot splitting into two physical versions (tuples) when an UPDATE occurs. Show Session A reading the new version (uncommitted) while Session B reads the old version because its transaction snapshot dictates that the updating transaction is not yet committed. Show VACUUM sweeping away the old version once no active transactions need it. */}
+
+Without a solid mental model of row versioning, you cannot diagnose "table bloat" (where dead tuples accumulate because long-running transactions prevent VACUUM from cleaning them up). It also unlocks your understanding of why indexes can point to multiple versions of a single logical row, and why writing highly concurrent applications requires choosing the correct isolation level to balance performance against anomalies like write-skew.
+
+## Read the official docs
+
+To dive deeper into the mechanics of transaction isolation, read-write conflicts, and the underlying locking matrix, read the official PostgreSQL documentation on [Concurrency Control](https://www.postgresql.org/docs/current/mvcc-intro.html).
