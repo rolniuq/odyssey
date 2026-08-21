@@ -1,0 +1,158 @@
+---
+{
+  "order": 15,
+  "title": "Working with JSON",
+  "coreConcept": "PostgreSQL allows storing and querying semi-structured data using the json and jsonb data types, with jsonb offering optimized binary storage and indexing.",
+  "docSource": "https://www.postgresql.org/docs/current/datatype-json.html",
+  "docTitle": "JSON Types",
+  "difficulty": "intermediate",
+  "objectives": ["Distinguish between the raw text storage of json and the decomposed binary storage of jsonb","Query nested JSON keys and arrays using PostgreSQL JSON operators","Perform updates on nested JSONB documents using built-in functions"],
+  "quiz": [
+  { "question": "In the recipe analogy, what represents the jsonb data type?",
+    "options": ["The raw index card with original handwriting, spacing, and typos.","The digital tablet that pre-parses, cleans, and indexes ingredients for instant searching.","The physical box where all index cards are filed alphabetically.","The chef who reads the recipes and prepares the dishes."],
+    "answerIndex": 1,
+    "explanation": "The digital tablet represents jsonb because it parses and structures the data upfront, stripping away formatting details to enable fast, indexed searches. The raw index card represents the json type, which preserves exact formatting but requires parsing on every read." },
+  { "question": "How does PostgreSQL handle duplicate keys when storing data in a jsonb column?",
+    "options": ["It throws a syntax error and rejects the insert.","It preserves all duplicate keys in their original order.","It keeps only the last value matching the duplicate key.","It automatically merges the duplicate values into a nested array."],
+    "answerIndex": 2,
+    "explanation": "Because jsonb parses and decomposes the input into a binary format, it does not preserve duplicate keys; only the last value matching the duplicate key is kept." },
+  { "question": "In the hands-on walkthrough, what is the difference between the -> operator and the ->> operator?",
+    "options": ["-> returns the value as a JSON object or array, while ->> returns the value as plain text.","-> is used for indexing, while ->> is used for updating values.","-> searches by key, while ->> searches by array index only.","There is no difference; they are completely interchangeable in all queries."],
+    "answerIndex": 0,
+    "explanation": "The -> operator extracts a nested JSON value as a JSON object/array (allowing further chaining), whereas ->> extracts the value as a scalar text string." },
+  { "question": "According to the 'What this is NOT' section, what kind of validation does PostgreSQL automatically perform on a jsonb column?",
+    "options": ["It validates that the data conforms to a predefined application schema.","It validates that all nested keys match the table's foreign keys.","It only validates that the input is syntactically valid JSON.","It performs no validation at all, treating it as raw text."],
+    "answerIndex": 2,
+    "explanation": "PostgreSQL ensures that the input is syntactically valid JSON. It does not automatically enforce application-level schema validation unless you explicitly add CHECK constraints." },
+  { "question": "What major performance feature is unlocked specifically by choosing jsonb over json?",
+    "options": ["Automatic compression of text columns.","The ability to use GIN (Generalized Inverted Index) indexing on nested keys.","Parallel processing of sequential table scans.","Automatic foreign key generation."],
+    "answerIndex": 1,
+    "explanation": "Because jsonb stores data in a decomposed binary format, it supports GIN (Generalized Inverted Index) indexing. This allows the database to index nested keys and values, preventing slow sequential table scans." },
+  { "question": "Which official PostgreSQL documentation page is recommended for further reading on this topic?",
+    "options": ["JSON Types","Semi-Structured Storage Engines","NoSQL Integration Guide","Binary Data Types"],
+    "answerIndex": 0,
+    "explanation": "The official documentation page recommended is titled 'JSON Types' and covers the technical details of both json and jsonb." }
+  ]
+}
+---
+
+Imagine you have a collection of complex, nested cooking recipes. One way to store them is to write each recipe on a physical index card exactly as it was handed to you, preserving the original handwriting, spacing, and typos, and file them in a box. When you want to find a recipe that uses "garlic", you have to pull out every single card and read it word-for-word from the top. Another way is to translate each recipe into a standardized, organized digital format on a tablet. The tablet strips away the original messy handwriting and extra spaces, but it indexes the ingredients. Now, when you search for "garlic", the tablet instantly highlights the matching recipes because it pre-parsed the data into a structured binary format. In PostgreSQL, the raw index card is the `json` data type, while the optimized digital tablet is the `jsonb` data type.
+
+## The precise version
+
+PostgreSQL provides two distinct data types for storing JSON (JavaScript Object Notation) data: `json` and `jsonb`. Understanding the architectural difference between them is critical for database performance.
+
+The `json` data type stores an exact, literal copy of the input text. The PostgreSQL server process does not parse or restructure this text during storage; it simply validates that the string is syntactically correct JSON and writes it to disk. Consequently, every time you query, extract, or filter a value from a `json` column, the server must re-parse the entire text string. This makes write operations very fast, but read and search operations extremely slow. It preserves whitespace, formatting, and duplicate object keys.
+
+The `jsonb` data type stores JSON data in a decomposed binary format. When you insert data into a `jsonb` column, the server parses the text, strips out unnecessary whitespace, removes duplicate keys (keeping only the last value), and reorganizes the keys for fast lookup. This parsing step adds a minor overhead during write operations. However, read operations are orders of magnitude faster because the server does not need to re-parse the data. Most importantly, `jsonb` supports indexing, which allows the query planner to locate nested keys and values without scanning the entire table.
+
+{/* DIAGRAM: Comparison of JSON raw text storage vs JSONB pre-parsed binary storage with GIN index lookup */}
+
+## Hands-on walkthrough
+
+Let's build a practical example. We will create a table to store user profiles with flexible settings, insert some semi-structured data, query nested attributes, and update a specific key.
+
+First, connect to your PostgreSQL database and create a table with a `jsonb` column:
+
+```sql
+CREATE TABLE user_profiles (
+    id serial PRIMARY KEY,
+    username varchar(50) NOT NULL,
+    settings jsonb NOT NULL
+);
+```
+
+Next, insert two rows containing nested JSON objects and arrays:
+
+```sql
+INSERT INTO user_profiles (username, settings) VALUES
+('alice', '{"theme": "dark", "notifications": {"email": true, "sms": false}, "tags": ["admin", "beta"]}'),
+('bob', '{"theme": "light", "notifications": {"email": false, "sms": true}, "tags": ["user"]}');
+```
+
+To query nested keys, PostgreSQL provides specialized operators. The `->` operator returns the value as a JSON object or array, while the `->>` operator returns the value as plain text. Let's extract the active theme:
+
+```sql
+SELECT username, settings->>'theme' AS active_theme
+FROM user_profiles;
+```
+
+Expected output:
+```text
+ username | active_theme
+----------+--------------
+ alice    | dark
+ bob      | light
+(2 rows)
+```
+
+To query deeply nested objects, you can chain these operators together. Let's find users who have email notifications enabled. Note that we cast the text output to a boolean:
+
+```sql
+SELECT username
+FROM user_profiles
+WHERE (settings->'notifications'->>'email')::boolean = true;
+```
+
+Expected output:
+```text
+ username
+----------
+ alice
+(1 row)
+```
+
+You can also search inside arrays using the containment operator `@>`, which checks if the left JSONB value contains the right JSONB value:
+
+```sql
+SELECT username
+FROM user_profiles
+WHERE settings->'tags' @> '["admin"]';
+```
+
+Expected output:
+```text
+ username
+----------
+ alice
+(1 row)
+```
+
+Finally, let's update a nested key. We will use the `jsonb_set` function to change Alice's theme to "light":
+
+```sql
+UPDATE user_profiles
+SET settings = jsonb_set(settings, '{theme}', '"light"')
+WHERE username = 'alice';
+```
+
+If you query Alice's settings now, you will see the updated value:
+
+```sql
+SELECT settings FROM user_profiles WHERE username = 'alice';
+```
+
+Expected output:
+```text
+                                             settings
+--------------------------------------------------------------------------------------------------
+ {"tags": ["admin", "beta"], "theme": "light", "notifications": {"sms": false, "email": true}}
+(1 row)
+```
+
+## What this is NOT
+
+| Concept | JSONB in PostgreSQL | What it is NOT |
+| :--- | :--- | :--- |
+| **Relational Alternative** | A tool for semi-structured attributes (e.g., user preferences, API payloads). | A total replacement for standard tables, foreign keys, and normal forms. |
+| **Performance** | Fast reads via binary parsing and GIN indexes. | Magic performance; querying unindexed deeply nested JSON keys on millions of rows is slow. |
+| **Validation** | Enforces syntactically valid JSON. | Enforces application-level schema validation (unless you add CHECK constraints). |
+| **Storage** | Decomposed binary format (`jsonb`) which strips whitespace. | A raw text saver (`jsonb` does not preserve exact formatting or duplicate keys). |
+
+## The diagram matters
+
+Understanding the difference between `json` and `jsonb` unlocks the ability to design hybrid database schemas. You don't have to choose between the strictness of SQL and the flexibility of NoSQL; PostgreSQL gives you both. By choosing `jsonb`, you unlock GIN (Generalized Inverted Index) indexing, which allows Postgres to index the internal keys and values of your JSON documents. This means a query searching inside a JSON array can run in milliseconds instead of scanning millions of rows.
+
+## Read the official docs
+
+To learn more about JSON operators, functions, and performance tuning, read the official PostgreSQL documentation on [JSON Types](https://www.postgresql.org/docs/current/datatype-json.html).
